@@ -1,0 +1,10 @@
+maintainer "Stephen Crawley"
+maintainer-email "s.crawley@uq.edu"
+license "All rights reserved"
+description "Install and configures a DaRIS minstance"
+long_description "Installs and configures a MediaFlux / DaRIS instance.  "
+                 "Before you start, it is necessary to obtain copies of the "
+                 "MediaFlux and DaRIS installation media, and a MediaFlux "
+                 "license key for the target system's MAC address."
+version "0.0.1"
+

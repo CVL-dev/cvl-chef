@@ -10,14 +10,12 @@ for MediaFlux and DaRIS, and a current license key file for MediaFlux:
   - The DaRIS files can be downloaded from the DaRIS downloads area; refer
     to http://nsp.nectar.org.au/wiki-its-r/doku.php?id=data_management:daris:downloads for details.
 
-Prerequisites
+Configuration
 =============
 
-MediaFlux is a Java application, and this cookbook doesn't handle the
-installation thereoff.  Instead you should either install a JDK or JRE by
-hand, or by adding the relevant "java" recipe to the role or node 
-specification together with attributes to select the version you require.
-(Refer to the java cookbook README.md - http://community.opscode.com/cookbooks/java for details.)
+MediaFlux is a Java application, and this cookbook uses the OpenJDK Java 7 JDK
+to fulfill this dependency.  If you want to, you can set node attributes to
+override the defaults; see the http://community.opscode.com/cookbooks/java for
+the relevant attributes
 
-At least Java 6 (1.6) is recommended in the DaRIS installation notes.
-
+ 

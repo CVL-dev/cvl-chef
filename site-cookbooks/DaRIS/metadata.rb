@@ -8,3 +8,4 @@ long_description "Installs and configures a MediaFlux / DaRIS instance.  "
                  "license key for the target system's MAC address."
 version "0.0.1"
 
+depends "java", ">= 1.13.0"

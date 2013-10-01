@@ -1,5 +1,5 @@
 maintainer "Stephen Crawley"
-maintainer-email "s.crawley@uq.edu"
+maintainer_email "s.crawley@uq.edu"
 license "All rights reserved"
 description "Install and configures a DaRIS minstance"
 long_description "Installs and configures a MediaFlux / DaRIS instance.  "

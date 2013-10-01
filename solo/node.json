@@ -2,6 +2,6 @@
   "name": "daris-chefsolo",
   "chef_environment": "_default",
   "run_list": [
-    "recipe[daris]"
+    "recipe[DaRIS]"
   ]
 }

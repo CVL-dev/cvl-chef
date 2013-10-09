@@ -40,7 +40,7 @@ Chef Solo and the recipes in this repo:
 
 2. Install the latest version of chef-client:
 ```
-        sudo true && curl -L https://www.opscode.com/chef/install.sh | bash
+	sudo true && curl -L https://www.opscode.com/chef/install.sh | bash
 ```
 3. Create a directory for doing chef solo work.
 ```
@@ -57,9 +57,9 @@ Chef Solo and the recipes in this repo:
 ```
    	cp solo/sample-node.json mynode.json
 	# edit mynode.json to add override attributes, 
-        #    change the runlist and so on
+	#    change the runlist and so on
 ```
 6. Run it using chef-solo
 ```
-       sudo chef-solo -c solo/solo.rb -j mynode.json -ldebug
+	sudo chef-solo -c solo/solo.rb -j mynode.json -ldebug
 ```

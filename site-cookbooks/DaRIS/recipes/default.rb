@@ -57,12 +57,12 @@ end
 
 link "#{mflux_home}/volatile}" do
   to mflux_fs
-  only_if { ::Directory.exists?(mflux_fs) }
+  only_if { ::File.directory?(mflux_fs) }
 end
 
 directory "#{mflux_home}/volatile}" do
   owner mflux_user
-  not_if { ::Directory.exists?(mflux_fs) }
+  not_if { ::File.directory?(mflux_fs) }
 end
 
 directory "#{mflux_home}/volatile/logs" do

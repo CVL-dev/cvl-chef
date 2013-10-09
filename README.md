@@ -29,7 +29,7 @@ you pay by the month.)
 
 * You can use Chef solo mode where you essentially manage each system 
 individually, and take care of the distribution of configuration specs and
-state yourself.  (Chef solo does not support Data Bags or dynamic Node 
+state yourself.  (Chef solo does not support shared Data Bags or dynamic Node 
 attribute storage ... or any form of authorization.)
 
 There is lots of material on the Opscode site about how to use Chef in its

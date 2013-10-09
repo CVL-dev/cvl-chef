@@ -25,6 +25,10 @@ directory "#{mflux_user_home}/bin" do
   owner mflux_user
 end
 
+log "url is #{url}" do
+  level :debug
+end
+
 if url == 'unset' || url == 'change-me' 
   if ! File.exists?("#{mflux_home}/installer.jar")
     log 'You must either download the installer by hand' + 
@@ -103,8 +107,8 @@ template "#{mflux_home}/config/services/network.tcl" do
   owner mflux_user
   source "network-tcl.erb"
   variables({
-    :http_port => node['media_flux']['http_port'],
-    :https_port => node['media_flux']['https_port']
+    :http_port => node['mediaflux']['http_port'],
+    :https_port => node['mediaflux']['https_port']
   })
 end
 

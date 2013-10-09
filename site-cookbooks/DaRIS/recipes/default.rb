@@ -109,7 +109,7 @@ template "#{mflux_user_home}/bin/mediaflux" do
   owner mflux_user
   source "mediaflux-init.erb"
   variables({
-    :mflux_user => mflux_user
+    :mflux_user => mflux_user,
     :mflux_user_home => mflux_user_home
   })
 end
@@ -118,7 +118,7 @@ template "/etc/init.d/mediaflux" do
   owner root
   source "mediaflux-init.erb"
   variables({
-    :mflux_user => mflux_user
+    :mflux_user => mflux_user,
     :mflux_user_home => mflux_user_home
   })
 end

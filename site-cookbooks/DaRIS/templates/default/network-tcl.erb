@@ -21,13 +21,13 @@
 #network.start :type tcpip :port 1967 :maxc 100
 
 # Start HTTP service - the standard port for HTTP is 80:
-<% if @http_port != "" do %>
+<% if @http_port != "" %>
 network.start :type http :port <%= @http_port %> :maxc 100
 <% end %>
 
 # Start HTTPS service (this is an HTTP protocol using 
 # security) - the standard port for HTTPS is 443:
-<% if @https_port != "" do %>
+<% if @https_port != "" %>
 network.start :type http :ssl true :port <%= @https_port %> :maxc 100
 <% end %>
 

@@ -55,34 +55,20 @@ EOF
 EOH
 end
 
-link "#{mflux_home}/volatile}" do
+link "#{mflux_home}/volatile" do
   to mflux_fs
   only_if { ::File.directory?(mflux_fs) }
 end
 
-directory "#{mflux_home}/volatile}" do
+directory "#{mflux_home}/volatile" do
   owner mflux_user
   not_if { ::File.directory?(mflux_fs) }
 end
 
-directory "#{mflux_home}/volatile/logs" do
-  owner mflux_user
-end
-
-directory "#{mflux_home}/volatile/tmp" do
-  owner mflux_user
-end
-
-directory "#{mflux_home}/volatile/database" do
-  owner mflux_user
-end
-
-directory "#{mflux_home}/volatile/stores" do
-  owner mflux_user
-end
-
-directory "#{mflux_home}/volatile/shopping" do
-  owner mflux_user
+['logs', 'tmp', 'database', 'stores', 'shopping'].each do |dir|
+  directory "#{mflux_home}/volatile/#{dir}" do
+    owner mflux_user
+  end
 end
 
 # Ermm ... there's a security issue with putting the "rc" file here ...

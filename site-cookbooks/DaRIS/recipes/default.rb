@@ -30,7 +30,7 @@ log "url is #{url}" do
 end
 
 if url == 'unset' || url == 'change-me' 
-  if ! File.exists?("#{mflux_home}/installer.jar")
+  if ! ::File.exists?("#{mflux_home}/installer.jar")
     log 'You must either download the installer by hand' + 
         ' or set the mediaflux.installer_url attribute' do
       level :fatal
@@ -45,7 +45,7 @@ else
 end
 
 bash "install-mediaflux" do 
-  not_if { ::File.exists("#{mflux_home}/PACKAGE.MF") }
+  not_if { ::File.exists?("#{mflux_home}/PACKAGE.MF") }
   user mflux_user
   code <<-EOH
 java -jar #{mflux_home}/installer.jar nogui << EOF
@@ -57,12 +57,12 @@ end
 
 link "#{mflux_home}/volatile}" do
   to mflux_fs
-  only_if { ::Directory.exists(mflux_fs) }
+  only_if { ::Directory.exists?(mflux_fs) }
 end
 
 directory "#{mflux_home}/volatile}" do
   owner mflux_user
-  not_if { ::Directory.exists(mflux_fs) }
+  not_if { ::Directory.exists?(mflux_fs) }
 end
 
 directory "#{mflux_home}/volatile/logs" do
@@ -129,6 +129,3 @@ template "/etc/init.d/mediaflux" do
     :mflux_user_home => mflux_user_home
   })
 end
-
-
-

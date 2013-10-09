@@ -40,7 +40,7 @@ Chef Solo and the recipes in this repo:
 
 2. Install the latest version of chef-client:
 ```
-	sudo true && curl -L https://www.opscode.com/chef/install.sh | bash
+	sudo bash -c "true && curl -L https://www.opscode.com/chef/install.sh | bash"
 ```
 3. Create a directory for doing chef solo work.
 ```

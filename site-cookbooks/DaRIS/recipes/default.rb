@@ -100,7 +100,7 @@ end
 
 template "#{mflux_user_home}/bin/mediaflux" do 
   owner mflux_user
-  source "mediaflux-init.erb"
+  source "daris-init.erb"
   variables({
     :mflux_user => mflux_user,
     :mflux_user_home => mflux_user_home

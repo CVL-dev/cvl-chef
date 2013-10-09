@@ -122,7 +122,7 @@ template "#{mflux_user_home}/bin/mediaflux" do
 end
 
 template "/etc/init.d/mediaflux" do 
-  owner root
+  owner "root"
   source "mediaflux-init.erb"
   variables({
     :mflux_user => mflux_user,

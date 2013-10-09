@@ -109,7 +109,7 @@ end
 
 template "/etc/init.d/mediaflux" do 
   owner "root"
-  source "mediaflux-init.erb"
+  source "daris-init.erb"
   variables({
     :mflux_user => mflux_user,
     :mflux_user_home => mflux_user_home

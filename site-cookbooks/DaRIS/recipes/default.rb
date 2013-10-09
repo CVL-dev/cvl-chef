@@ -27,8 +27,11 @@ end
 
 if url == 'unset' || url == 'change-me' 
   if ! File.exists?("#{mflux_home}/installer.jar")
-    Chef::Application.fatal!('You must either download the installer by hand' + 
-                            ' or set the mediaflux.installer_url attribute')
+    log 'You must either download the installer by hand' + 
+        ' or set the mediaflux.installer_url attribute' do
+      level :fatal
+    end
+    return
   end
 else
   remote_file "#{mflux_home}/installer.jar" do

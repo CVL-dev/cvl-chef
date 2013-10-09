@@ -1,6 +1,10 @@
 {
   "name": "daris-chefsolo",
   "chef_environment": "_default",
+  "override": {
+    "mediaflux": {
+       "installer_url": "change-me"
+  },
   "run_list": [
     "recipe[DaRIS]"
   ]

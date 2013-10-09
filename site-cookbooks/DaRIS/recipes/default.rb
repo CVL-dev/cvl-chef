@@ -1,27 +1,45 @@
 include_recipe "java"
 
 mflux_home = node['mediaflux']['home']
+mflux_user = node['mediaflux']['user']
+mflux_user_home = node['mediaflux']['user_home']
 mflux_fs = node['mediaflux']['fs']
+url = node['mediaflux']['installer_url']
 
-user "mediaflux" do
-  comment "MediaFlux server account"
+user mflux_user do
+  comment "MediaFlux service"
   system true
   shell "/bin/false"
-  home mflux_home
+  home mflux_user_home
 end
 
 directory mflux_home do
-  owner "mediaflux"
+  owner mflux_user
 end
 
-remote_file "${mflux_home}/installer.jar" do
-  action :create_if_missing
-  source node['mediaflux']['installer_url']
+directory mflux_user_home do
+  owner mflux_user
+end
+
+directory "#{mflux_user_home}/bin" do
+  owner mflux_user
+end
+
+if url == 'unset' || url == 'change-me' then
+  if ! ::File.exists?("#{mflux_home}/installer.jar") do
+    Chef::Application.fatal('You must either download the istaller by hand' 
+                            ' or set the mediaflux.installer_url attribute')
+  end
+else
+  remote_file "#{mflux_home}/installer.jar" do
+    action :create_if_missing
+    source url
+  end
 end
 
 bash "install-mediaflux" do 
   not_if { ::File.exists("#{mflux_home}/PACKAGE.MF") }
-  user "mediaflux"
+  user mflux_user
   code <<-EOH
 java -jar #{mflux_home}/installer.jar nogui << EOF
 accept
@@ -36,32 +54,33 @@ link "#{mflux_home}/volatile}" do
 end
 
 directory "#{mflux_home}/volatile}" do
-  owner "mediaflux"
+  owner mflux_user
   not_if { ::Directory.exists(mflux_fs) }
 end
 
 directory "#{mflux_home}/volatile/logs" do
-  owner "mediaflux"
+  owner mflux_user
 end
 
 directory "#{mflux_home}/volatile/tmp" do
-  owner "mediaflux"
+  owner mflux_user
 end
 
 directory "#{mflux_home}/volatile/database" do
-  owner "mediaflux"
+  owner mflux_user
 end
 
 directory "#{mflux_home}/volatile/stores" do
-  owner "mediaflux"
+  owner mflux_user
 end
 
 directory "#{mflux_home}/volatile/shopping" do
-  owner "mediaflux"
+  owner mflux_user
 end
 
-template "#{mflux_home}/.mfluxrc" do 
-  owner "mediaflux"
+# Ermm ... there's a security issue with putting the "rc" file here ...
+template "#{mflux_user_home}/.mfluxrc" do 
+  owner mflux_user
   mode 0600
   source "mfluxrc.erb"
   variables({
@@ -70,7 +89,7 @@ template "#{mflux_home}/.mfluxrc" do
 end
 
 template "#{mflux_home}/config/database/database.tcl" do 
-  owner "mediaflux"
+  owner mflux_user
   source "database-tcl.erb"
   variables({
     :mflux_home => mflux_home
@@ -78,7 +97,7 @@ template "#{mflux_home}/config/database/database.tcl" do
 end
 
 template "#{mflux_home}/config/services/network.tcl" do 
-  owner "mediaflux"
+  owner mflux_user
   source "network-tcl.erb"
   variables({
     :http_port => node['media_flux']['http_port'],
@@ -86,8 +105,23 @@ template "#{mflux_home}/config/services/network.tcl" do
   })
 end
 
+template "#{mflux_user_home}/bin/mediaflux" do 
+  owner mflux_user
+  source "mediaflux-init.erb"
+  variables({
+    :mflux_user => mflux_user
+    :mflux_user_home => mflux_user_home
+  })
+end
 
-
+template "/etc/init.d/mediaflux" do 
+  owner root
+  source "mediaflux-init.erb"
+  variables({
+    :mflux_user => mflux_user
+    :mflux_user_home => mflux_user_home
+  })
+end
 
 
 

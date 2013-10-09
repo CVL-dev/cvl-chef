@@ -26,8 +26,8 @@ directory "#{mflux_user_home}/bin" do
 end
 
 if url == 'unset' || url == 'change-me' 
-  if ! ::File.exists?("#{mflux_home}/installer.jar")
-    Chef::Application.fatal('You must either download the installer by hand' + 
+  if ! File.exists?("#{mflux_home}/installer.jar")
+    Chef::Application.fatal!('You must either download the installer by hand' + 
                             ' or set the mediaflux.installer_url attribute')
   end
 else

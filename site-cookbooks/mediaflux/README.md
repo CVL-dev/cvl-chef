@@ -2,13 +2,11 @@ Overview
 ========
 
 This cookbook is for installing and doing the initial configuration of a
-MediaFlux / DaRIS instance.  The prerequisites are the installation files 
-for MediaFlux and DaRIS, and a current license key file for MediaFlux:
+MediaFlux instance.  The prerequisites are the installation files 
+for MediaFlux,and a current license key file for MediaFlux:
 
   - The MediaFlux installation JAR file and license key should be obtained
-    from Architecta.
-  - The DaRIS files can be downloaded from the DaRIS downloads area; refer
-    to http://nsp.nectar.org.au/wiki-its-r/doku.php?id=data_management:daris:downloads for details.
+    from Architecta (or SGI who distribute it as "LiveArc").
 
 Dependencies
 ============
@@ -34,6 +32,4 @@ See `attributes/default.rb` for the default values.
 * `node['mediaflux']['installer_url']` - Specifies a URL for downloading the Mediaflux installer.  By default this is "unset", and the recipe will assume that you have obtained and placed the installer in "#{node['mediaflux']['home']}/installer.jar".
 * `node['mediaflux']['admin_password']` - Specifies the initial "encrypted" MediaFlux administrator password.  The `DaRIS installation instructions explain how to encrypt a password, and how to change the password post-installation.
 * `node.default['mediaflux']['http_port']` - Specifies the port for the MediaFlux server's http listener.  If unset, the server won't start an http listener.
-* `node.default['mediaflux']['https_port']` - Specifies the port for the MediaFlux server's https listener.  If unset, the server won't start an https listener.  Note that for https to work, you also need to create or obtain a suitable SSL certificate.  (See the DaRIS installation documentation for instructions on creating a self-signed certificate.)
-
-
+* `node.default['mediaflux']['https_port']` - Specifies the port for the MediaFlux server's https listener.  If unset, the server won't start an https listener.  Note that for https to work, you also need to create or obtain a suitable SSL certificate.  

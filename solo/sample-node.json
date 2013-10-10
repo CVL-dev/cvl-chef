@@ -5,6 +5,6 @@
      "installer_url": "change-me"
   },
   "run_list": [
-    "recipe[DaRIS]"
+    "recipe[daris]"
   ]
 }

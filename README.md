@@ -1,8 +1,24 @@
 cvl-chef
 ========
 
-This repository contains Chef support for some NeCTAR Characterization Virtual 
-Laboratory (CVL) projects.
+This repository contains Chef cookbooks for some NeCTAR Characterization 
+Virtual Laboratory (CVL) projects.  
+
+Menu
+====
+
+* `site-cookbooks/mediaflux` - Installation and configuration of generic Mediaflux server 
+* `site-cookbooks/daris` - Installation and configurayion of a DaRIS instance
+* `site-cookbooks/pvconv` - Download, build and install the pvconv Bruker converter.
+
+Status
+======
+
+Any cookbooks with a "0.0.1" version number should be viewed as prerelease;
+e.g. potentially incomplete and unstable.
+
+Cookbooks are currently only being tested on CentOS 6.4.
+  
 
 Micro-introduction to Chef
 ==========================

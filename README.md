@@ -8,7 +8,7 @@ Menu
 ====
 
 * `site-cookbooks/mediaflux` - Installation and configuration of generic Mediaflux server 
-* `site-cookbooks/daris` - Installation and configurayion of a DaRIS instance
+* `site-cookbooks/daris` - Installation and configuration of a DaRIS instance
 * `site-cookbooks/pvconv` - Download, build and install the pvconv Bruker converter.
 
 Status

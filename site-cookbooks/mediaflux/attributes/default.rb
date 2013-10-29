@@ -24,6 +24,19 @@ node.default['mediaflux']['http_port'] = '8080'
 node.default['mediaflux']['https_port'] = '8443'
 node.default['mediaflux']['run_as_root'] = false
 
+node.default['mediaflux']['server_name'] = node['hostname']
+node.default['mediaflux']['server_organization'] = 'Unspecified Organization'
+node.default['mediaflux']['mail_smtp_host'] = ''
+node.default['mediaflux']['mail_smtp_port'] = '25'
+node.default['mediaflux']['mail_from'] = ''
+node.default['mediaflux']['notification_from'] = ''
+node.default['mediaflux']['authentication_domain'] = ''
+
+node.default['mediaflux']['install_java'] = true
+node.default['mediaflux']['java_command'] = nil
+node.default['mediaflux']['jvm_memory_max'] = nil
+node.default['mediaflux']['jvm_memory_perm_max'] = '512'
+
 node.normal['java']['install_flavor'] = 'openjdk'
 node.normal['java']['jdk_version'] = '7'
 node.normal['java']['accept_license_agreement'] = true
@@ -31,3 +44,6 @@ node.normal['java']['accept_license_agreement'] = true
 # This workaround comes from CHEF-4234.  It forces the "java" recipe attributes
 # to be reloaded, and the ones that interpolate the above to be re-evaluated.
 node.from_file(run_context.resolve_attribute(*parse_attribute_file_spec("java")))
+
+# This is "internal" to the recipe and others that depend on it.
+node.default['mediaflux']['defer_start'] = false

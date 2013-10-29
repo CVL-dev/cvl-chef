@@ -35,7 +35,15 @@ See `attributes/default.rb` for the default values.
 * `node['mediaflux']['admin_password']` - Specifies the initial Mediaflux administrator password.  The DaRIS installation instructions explain how to encrypt a password, and how to change the password post-installation.
 * `node.default['mediaflux']['http_port']` - Specifies the port for the Mediaflux server's http listener.  If unset, the server won't start an http listener.
 * `node.default['mediaflux']['https_port']` - Specifies the port for the Mediaflux server's https listener.  If unset, the server won't start an https listener.  Note that for https to work, you also need to create or obtain a suitable SSL certificate.  The recipe will bail out if a certificate is required and none is available; e.g. in the 'installers' directory.
-* `node.default['mediaflux']['run_as_root']` - If "true", the server will be run as "root" allowing it to bind to the normal HTTP / HTTPS ports.
+* `node.default['mediaflux']['run_as_root']` - If true, the server will be run as "root" allowing it to bind to the normal HTTP / HTTPS ports.
+* `node.default['mediaflux']['install_java']` - If true, the main recipe will attempt to install Java using the "java::default" recipe.  
+* `node.default['mediaflux']['java_command']` - The pathname to be used for the Java command.
+
+The Java installation details are as follows:
+
+* If "install_java" flag is true, then the "java" cookbook attributes determine the version selected.  (Note that these are overridden at the "default" level in the mediaflux "attributes/default.rb" file.)
+
+* Once "java" is installed (or not), a default for "java_command" is set using "which java".
 
 Configuring the ports
 =====================
@@ -65,6 +73,25 @@ you have the following choices:
 
 * Ignore the security concerns, and set the "run_as_root" attribute to "true".
   This approach is not recommmended!
+
+Testing
+=======
+
+Once DaRIS is installed, we recommend that you do the following simple tests:
+
+* Check that the Mediaflux service is running using the command "sudo /etc/init.d/mediaflux status".
+
+* Start the "aterm" command shell by running "~mediaflux/bin/aterm".  This is an X11 application, so you will need to enable X11 forwarding if you connect via SSH.
+
+* Establish a browser connection to the root of the Mediaflux web portal.  The URL will be "http://<hostname>:<http-port>/" or "https://<hostname>:<https-port>/".   (If you used a self-signed SSL cert, you will need to tell your browser "it is OK" in the appropriate fashion ...).  Note that you can't do anything useful here, but this will confirm that HTTP / HTTPS connections are working.
+
+* Attempt to use the Daris Portal.
+  * Establish a browser connection to the DaRIS portal via https.  The URL will be  "https://<hostname>:<https-port>/daris/".  
+  * Login using system/manager and your manager password.  
+  * If you are prompted to allow an Architecta Mediaflux DTI agent applet to run, allow it.
+  * If you are prompted to allow loading of code from your website, allow it.  (That's most likely due to using a self-signed certificate.)
+  * When you get to the DaRIS Portal itself, check that the DTI agent is active.  Look at the "DTI" icon in the menu bar.  If it fails to activate, the DaRIS wiki has a page on "Java Issues" to help you diagnose the problem.  Also look at "
+https://<host>:<port>/daris/docs/install-dti.html".
 
 Security issues
 ===============
@@ -119,4 +146,6 @@ https://tickets.opscode.com/browse/COOK-847.
 * We currently assume that the 'java' on the PATH is the right one to use.
 
 * Support for re-install, including attempting to recover and use the current sysystem password.  (For now, we need to manually blow away the /etc/mediaflux/systemrc file, install with the default password, and then manually reset it using the procedure in the DaRIS wiki.)
+
+* Installing stuff in ~mediaflux/bin is maybe not the best ...
 

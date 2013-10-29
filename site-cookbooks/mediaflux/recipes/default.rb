@@ -27,7 +27,21 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-include_recipe "java"
+# This is hacky ... and probably wrong for some platforms
+if node['mediaflux']['install_java'] then
+  include_recipe "java"
+end
+java_cmd = node['mediaflux']['java_command'] 
+if java_cmd == nil || java_cmd == '' then
+  java_cmd = `which java`.strip() # Get rid of trailing newline!
+end
+
+java_version = `#{java_cmd} -version 2>&1` 
+log "java-version" do
+  message "The selected Java command is #{java_cmd} and the " +
+          "version is #{java_version}"
+  level :debug
+end
 
 mflux_home = node['mediaflux']['home']
 mflux_user = node['mediaflux']['user']
@@ -114,6 +128,15 @@ accept
 #{mflux_home}
 EOF
 EOH
+  notifies :run, "bash[rm-dummy-configs]", :immediately
+end
+
+# These two files need to be replaced if and only if the installer just 
+# deposited them ...
+bash "rm-dummy-configs" do
+  action :nothing
+  code "rm #{mflux_home}/config/services/network.tcl && " +
+    "rm #{mflux_home}/config/database/database.tcl"
 end
 
 link "#{mflux_home}/volatile" do
@@ -169,6 +192,8 @@ template "#{mflux_home}/config/database/database.tcl" do
   variables({
     :mflux_home => mflux_home
   })
+  # This could be tailored by a layered application ...
+  not_if { ::File.exists?("#{mflux_home}/config/database/database.tcl") }
 end
 
 template "#{mflux_home}/config/services/network.tcl" do 
@@ -178,6 +203,8 @@ template "#{mflux_home}/config/services/network.tcl" do
     :http_port => node['mediaflux']['http_port'],
     :https_port => node['mediaflux']['https_port']
   })
+  # This could be tailored by a layered application ...
+  not_if { ::File.exists?("#{mflux_home}/config/services/network.tcl") }
 end
 
 cookbook_file "#{mflux_user_home}/bin/mfcommand" do 
@@ -251,16 +278,12 @@ if have_certs then
   end
 end
 
+# The 'defer_start' hack allows another recipe to do stuff
+# before the mediaflux service is started.
 service "mediaflux" do
-  action [ :enable, :restart ]
+  action ( if node['mediaflux']['defer_start'] then
+             [ :enable, :restart ]
+           else
+             [ :enable ]
+           end )
 end
-
-# This is a bit crude, but following recipes may require that the 
-# Mediaflux service is 'up'.  
-bash "mediaflux-listening" do
-  user mflux_user
-  code ". /etc/mediaflux/mfluxrc ; " +
-       "wget ${MFLUX_TRANSPORT}://${MFLUX_HOST}:${MFLUX_PORT}/ " +
-       "    --retry-connrefused --no-check-certificate -O /dev/null " +
-       "    --waitretry=1 --timeout=2 --tries=10"
-end 

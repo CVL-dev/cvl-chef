@@ -1,13 +1,13 @@
 #
 # Cookbook Name:: daris
-# Recipe:: default
+# Recipe:: common
 #
 # Copyright (c) 2013, The University of Queensland
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
-# * Redistributions of source code must retain the above copyright
+# * Redistributions of source 1code must retain the above copyright
 # notice, this list of conditions and the following disclaimer.
 # * Redistributions in binary form must reproduce the above copyright
 # notice, this list of conditions and the following disclaimer in the
@@ -27,6 +27,26 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-include_recipe "daris::daris"
+mflux_user = node['mediaflux']['user']
+mflux_user_home = node['mediaflux']['user_home']
 
-include_recipe "daris::pvupload"
+installers = node['mediaflux']['installers']
+if ! installers.start_with?('/') then
+  installers = mflux_user_home + '/' + installers
+end
+
+package "wget" do
+  action :install
+  not_if { ::File.exists?("/usr/bin/wget") }
+end
+
+package "unzip" do
+  action :install
+  not_if { ::File.exists?('/usr/bin/unzip') }
+end
+
+directory installers do
+  owner mflux_user
+end
+
+

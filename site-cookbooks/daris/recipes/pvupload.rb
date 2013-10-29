@@ -1,6 +1,6 @@
 #
 # Cookbook Name:: daris
-# Recipe:: default
+# Recipe:: pvupload
 #
 # Copyright (c) 2013, The University of Queensland
 # All rights reserved.
@@ -27,6 +27,38 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-include_recipe "daris::daris"
+include_recipe "daris::common"
 
-include_recipe "daris::pvupload"
+mflux_home = node['mediaflux']['home']
+mflux_user = node['mediaflux']['user']
+mflux_user_home = node['mediaflux']['user_home']
+url = node['daris']['download_url']
+user = node['daris']['download_user']
+password = node['daris']['download_password']
+
+installers = node['mediaflux']['installers']
+if ! installers.start_with?('/') then
+  installers = mflux_user_home + '/' + installers
+end
+
+file = node.default['daris']['pvupload']
+bash "fetch-pvupload" do
+  user mflux_user
+  code "wget --user=#{user} --password=#{password} --no-check-certificate " +
+       "-O #{installers}/#{file} #{url}/#{file}"
+  not_if { ::File.exists?("#{installers}/#{file}") }
+end
+
+bash "extract-pvupload" do
+  cwd "#{mflux_user_home}/bin"
+  user mflux_user
+  group mflux_user
+  code "unzip -o #{installers}/#{file} pvupload.jar"
+end
+
+cookbook_file "#{mflux_user_home}/bin/mfpvupload.sh" do
+  owner mflux_user
+  group mflux_user
+  mode 0750
+  source "mfpvload.sh"
+end

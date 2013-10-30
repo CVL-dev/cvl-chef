@@ -48,6 +48,9 @@ individually, and take care of the distribution of configuration specs and
 state yourself.  (Chef solo does not support shared Data Bags or dynamic Node 
 attribute storage ... or any form of authorization.)
 
+Getting Started
+===============
+
 There is lots of material on the Opscode site about how to use Chef in its
 various forms.  But here's a quick "cheat sheet" to get yourself started with
 Chef Solo and the recipes in this repo:
@@ -79,3 +82,18 @@ Chef Solo and the recipes in this repo:
 ```
 	sudo chef-solo -c solo/solo.rb -j mynode.json -ldebug
 ```
+
+How to stop Chef from being clobbered by Yum
+============================================
+
+The above procedure is installing the latest Chef tools from Opscode, independently of the rpm / yum repositories.  These are a much more recent version that the Chef tools than you would get if you installed the "rubygem-chef" from the repos.  Unfortunately, if you let "yum" update Chef, it will actually install the older version.  To prevent this happening:
+
+1.  Run "sudo yum check-updates" to see if yum would attempt to update Chef.
+
+2.  If it would, then identify the repo from which the "rubygem-chef" package would be installed.
+
+3.  Edit the corresponding repo config file (in /etc/yum.repos.d/) to add an exclude for the package; e.g.
+
+    	 exclude = rubygem-chef
+
+4.  Run "sudo yum check-updates" again to check that you have successfully excluded the package.

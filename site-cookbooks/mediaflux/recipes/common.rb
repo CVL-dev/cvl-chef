@@ -1,6 +1,6 @@
 #
-# Cookbook Name:: daris
-# Recipe:: pvupload
+# Cookbook Name:: mediaflux
+# Recipe:: common
 #
 # Copyright (c) 2013, The University of Queensland
 # All rights reserved.
@@ -27,39 +27,51 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-include_recipe "mediaflux::common"
-include_recipe "daris::common"
+##
+## Some base configuration that is common to mediaflux server and client mc's
+##
 
 mflux_home = node['mediaflux']['home']
 mflux_user = node['mediaflux']['user']
 mflux_user_home = node['mediaflux']['user_home']
-url = node['daris']['download_url']
-user = node['daris']['download_user']
-password = node['daris']['download_password']
 
-installers = node['mediaflux']['installers']
-if ! installers.start_with?('/') then
-  installers = mflux_user_home + '/' + installers
+user mflux_user do
+  comment "MediaFlux service"
+  system true
+  shell "/bin/false"
+  home mflux_user_home
 end
 
-file = node.default['daris']['pvupload']
-bash "fetch-pvupload" do
-  user mflux_user
-  code "wget --user=#{user} --password=#{password} --no-check-certificate " +
-       "-O #{installers}/#{file} #{url}/#{file}"
-  not_if { ::File.exists?("#{installers}/#{file}") }
-end
-
-bash "extract-pvupload" do
-  cwd "#{mflux_user_home}/bin"
-  user mflux_user
-  group mflux_user
-  code "unzip -o #{installers}/#{file} pvupload.jar"
-end
-
-cookbook_file "#{mflux_user_home}/bin/mfpvupload.sh" do
+directory mflux_user_home do
   owner mflux_user
+  mode 0755
+end
+
+directory "#{mflux_user_home}/bin" do
+  owner mflux_user
+  mode 0755
+end
+
+directory mflux_home do
+  owner mflux_user
+  mode 0755
+end
+
+directory "/etc/mediaflux" do
+  owner "root"
+  mode 0755
+end
+
+template "/etc/mediaflux/mfluxrc" do 
+  owner "root"
   group mflux_user
-  mode 0750
-  source "mfpvload.sh"
+  mode 0444
+  source "mfluxrc.erb"
+  variables({
+    :mflux_user => mflux_user,
+    :mflux_home => mflux_home,
+    :http_port => node['mediaflux']['http_port'],
+    :https_port => node['mediaflux']['https_port'],
+    :java => java_cmd
+  })
 end

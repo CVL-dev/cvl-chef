@@ -27,30 +27,17 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-# This is hacky ... and probably wrong for some platforms
-if node['mediaflux']['install_java'] then
-  include_recipe "java"
-end
-java_cmd = node['mediaflux']['java_command'] 
-if java_cmd == nil || java_cmd == '' then
-  java_cmd = `which java`.strip() # Get rid of trailing newline!
-end
-
-java_version = `#{java_cmd} -version 2>&1` 
-log "java-version" do
-  message "The selected Java command is #{java_cmd} and the " +
-          "version is #{java_version}"
-  level :debug
-end
+include_recipe "mediaflux::common"
 
 mflux_home = node['mediaflux']['home']
+mflux_bin = node['mediaflux']['bin'] || "#{mflux_home}/bin"
 mflux_user = node['mediaflux']['user']
-mflux_user_home = node['mediaflux']['user_home']
-mflux_fs = node['mediaflux']['fs']
+mflux_user_home = node['mediaflux']['user_home'] || mflux_home
+mflux_fs = node['mediaflux']['volatile']
 url = node['mediaflux']['installer_url']
 
 # This is where we look for installers and license key files ...
-installers = node['mediaflux']['installers']
+installers = node['mediaflux']['installers'] || 'installers'
 if ! installers.start_with?('/') then
   installers = mflux_user_home + '/' + installers
 end
@@ -71,10 +58,8 @@ need_certs = node['mediaflux']['https_port'] != ''
 # avoid clobbering it.
 if File::exists?('/etc/mediaflux/servicerc') then
   admin_password = `. /etc/mediaflux/servicerc && echo $MFLUX_PASSWORD`.strip()
-  new_passwd = false
 else
-  new_passwd = true
-  admin_password = node['mediaflux']['admin_password']
+  admin_password = 'change_me'
 end
 
 # This is required to run 'aterm' on a headless machine / virtual
@@ -82,6 +67,7 @@ package "xauth" do
   action :install
 end
 
+# Create the service user
 user mflux_user do
   comment "MediaFlux service"
   system true
@@ -89,24 +75,11 @@ user mflux_user do
   home mflux_user_home
 end
 
-directory mflux_home do
-  owner mflux_user
-  mode 0755
-end
-
-directory mflux_user_home do
-  owner mflux_user
-  mode 0755
-end
-
-directory "#{mflux_user_home}/bin" do
-  owner mflux_user
-  mode 0755
-end
-
-directory "/etc/mediaflux" do
-  owner "root"
-  mode 0755
+if mflux_user_home != mflux_home then
+  directory mflux_user_home do
+    owner mflux_user
+    mode 0755
+  end
 end
 
 directory installers do
@@ -114,7 +87,7 @@ directory installers do
   mode 0750
 end
 
-if url == 'unset' || url == 'change-me' 
+if url == nil
   if ! ::File.exists?("#{installers}/#{installer}")
     log 'You must either download the installer by hand' + 
         ' or set the mediaflux.installer_url attribute' do
@@ -151,12 +124,12 @@ end
 
 link "#{mflux_home}/volatile" do
   to mflux_fs
-  only_if { ::File.directory?(mflux_fs) }
+  only_if { mflux_fs && ::File.directory?(mflux_fs) }
 end
 
 directory "#{mflux_home}/volatile" do
   owner mflux_user
-  not_if { ::File.directory?(mflux_fs) }
+  not_if { mflux_fs && ::File.directory?(mflux_fs) }
 end
 
 ['logs', 'tmp', 'database', 'stores', 'shopping'].each do |dir|
@@ -165,26 +138,13 @@ end
   end
 end
 
-template "/etc/mediaflux/mfluxrc" do 
-  owner "root"
-  group mflux_user
-  mode 0444
-  source "mfluxrc.erb"
-  variables({
-    :mflux_user => mflux_user,
-    :mflux_home => mflux_home,
-    :http_port => node['mediaflux']['http_port'],
-    :https_port => node['mediaflux']['https_port']
-  })
-end
-
 template "/etc/mediaflux/servicerc" do 
-  action :create_if_missing
   owner "root"
   group mflux_user
   mode 0440
   source "servicerc.erb"
   variables({
+    :mflux_user => mflux_user,
     :admin_password => admin_password,
     :run_as_root => node['mediaflux']['run_as_root']
   })
@@ -194,6 +154,16 @@ end
 bash "fix-permissions" do
   code "chown root:#{mflux_user} /etc/mediaflux/servicerc && " +
        "chmod 0440 /etc/mediaflux/servicerc"
+end
+
+template "#{mflux_bin}/change-mf-password.sh" do
+  source "change-mf-password.erb"
+  owner 'root'
+  group mflux_user
+  mode 0755
+  variables ({
+               :mflux_user_home => mflux_user_home
+             })
 end
 
 template "#{mflux_home}/config/database/database.tcl" do 
@@ -217,13 +187,13 @@ template "#{mflux_home}/config/services/network.tcl" do
   not_if { ::File.exists?("#{mflux_home}/config/services/network.tcl") }
 end
 
-cookbook_file "#{mflux_user_home}/bin/mfcommand" do 
+cookbook_file "#{mflux_bin}/mfcommand" do 
   owner mflux_user
   mode 0755
   source "mfcommand.sh"
 end
 
-cookbook_file "#{mflux_user_home}/bin/mediaflux" do 
+cookbook_file "#{mflux_bin}/mediaflux" do 
   owner mflux_user
   mode 0750
   source "mediaflux-init.sh"
@@ -235,13 +205,10 @@ cookbook_file "/etc/init.d/mediaflux" do
   source "mediaflux-init.sh"
 end
 
-template "#{mflux_user_home}/bin/aterm" do 
+cookbook_file "#{mflux_bin}/aterm" do 
   owner mflux_user
   mode 0755
-  source "aterm.erb"
-  variables({
-    :mflux_home => mflux_home
-  })
+  source "aterm.sh"
 end
 
 if ! have_licence then

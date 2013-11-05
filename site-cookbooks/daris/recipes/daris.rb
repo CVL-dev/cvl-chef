@@ -32,15 +32,17 @@ include_recipe "pvconv"
 include_recipe "daris::common"
 
 mflux_home = node['mediaflux']['home']
+mflux_bin = node['mediaflux']['bin'] || "#{mflux_home}/bin"
 mflux_user = node['mediaflux']['user']
-mflux_user_home = node['mediaflux']['user_home']
+mflux_user_home = node['mediaflux']['user_home'] || mflux_home
 url = node['daris']['download_url']
 user = node['daris']['download_user']
 password = node['daris']['download_password']
 
 pkgs = node['daris']['pkgs']
-
-installers = node['mediaflux']['installers']
+local_pkgs = node['daris']['local_pkgs'] || {}
+all_pkgs = pkgs.merge(local_pkgs)
+installers = node['mediaflux']['installers'] || 'installers'
 if ! installers.start_with?('/') then
   installers = mflux_user_home + '/' + installers
 end
@@ -58,7 +60,7 @@ ruby_block "check-preconditions" do
   end
 end
 
-mfcommand = "#{mflux_user_home}/bin/mfcommand"
+mfcommand = "#{mflux_bin}/mfcommand"
 pvconv = node['pvconv']['command']
 
 dicom_store = node['daris']['dicom_store']
@@ -69,31 +71,32 @@ end
 domain = node['mediaflux']['authentication_domain']
 if ! domain || domain == '' then
   domain = node['daris']['ns'] 
+end
 
-template "#{mflux_user_home}/initial_daris_conf.tcl" do 
+template "#{mflux_home}/config/initial_daris_conf.tcl" do 
   source "initial_daris_conf_tcl.erb"
   owner mflux_user
   group mflux_user
   mode 0400
   helpers (DarisHelpers)
   variables ({
-    :password => node['mediaflux']['admin_password'],
-    :server_name => node['mediaflux']['server_name'],
-    :server_organization => node['mediaflux']['server_organization'],
-    :jvm_memory_max => node['mediaflux']['jvm_memory_max'],
-    :jvm_memory_perm_max => node['mediaflux']['jvm_memory_max'],
-    :mail_smtp_host => node['mediaflux']['mail_smtp_host'],
-    :mail_smtp_port => node['mediaflux']['mail_smtp_port'],
-    :mail_from => node['mediaflux']['mail_from'],
-    :notification_from => node['mediaflux']['notification_from'],
-    :authentication_domain => domain
-    :dicom_namespace => node['daris']['dicom_namespace'],
-    :dicom_store => dicom_store,
-    :dicom_proxy_domain => node['daris']['dicom_proxy_domain'],
-    :dicom_proxy_user_names => node['daris']['dicom_proxy_user_names'],
-    :dicom_ingest_notifications => node['daris']['dicom_ingest_notifications'],
-    :ns => node['daris']['ns']
-  })
+               :password => node['mediaflux']['admin_password'],
+               :server_name => node['mediaflux']['server_name'],
+               :server_organization => node['mediaflux']['server_organization'],
+               :jvm_memory_max => node['mediaflux']['jvm_memory_max'],
+               :jvm_memory_perm_max => node['mediaflux']['jvm_memory_max'],
+               :mail_smtp_host => node['mediaflux']['mail_smtp_host'],
+               :mail_smtp_port => node['mediaflux']['mail_smtp_port'],
+               :mail_from => node['mediaflux']['mail_from'],
+               :notification_from => node['mediaflux']['notification_from'],
+               :authentication_domain => domain,
+               :dicom_namespace => node['daris']['dicom_namespace'],
+               :dicom_store => dicom_store,
+               :dicom_proxy_domain => node['daris']['dicom_proxy_domain'],
+               :dicom_proxy_user_names => node['daris']['dicom_proxy_user_names'],
+               :dicom_ingest_notifications => node['daris']['dicom_ingest_notifications'],
+               :ns => node['daris']['ns']
+             })
 end
 
 pkgs.each() do | pkg, file | 
@@ -102,6 +105,13 @@ pkgs.each() do | pkg, file |
     code "wget --user=#{user} --password=#{password} --no-check-certificate " +
          "-O #{installers}/#{file} #{url}/#{file}"
     not_if { ::File.exists?("#{installers}/#{file}") }
+  end
+end
+
+local_pkgs.each() do | pkg, file | 
+  if ! ::File.exists?("#{installers}/#{file}") then
+    raise "There is no installer for local package #{pkg}: " +
+      "(expected #{installers}/#{file})" 
   end
 end
 
@@ -128,46 +138,49 @@ bash "fetch-server-config" do
   not_if { ::File.exists?("#{installers}/#{file}") }
 end
 
-bash "extract-server-config" do
-  cwd "#{mflux_user_home}/bin"
-  user mflux_user
-  group mflux_user
+bash 'extract-server-config' do
+  cwd mflux_bin
+  user 'root'
   code "unzip -o #{installers}/#{file} server-config.jar"
 end
 
-cookbook_file "#{mflux_user_home}/bin/server-config.sh" do
-  owner mflux_user
-  group mflux_user
+cookbook_file "#{mflux_bin}/server-config.sh" do
+  owner 'root'
   mode 0750
-  source "server-config.sh"
+  source 'server-config.sh'
 end
 
 ruby_block "bootstrap_test" do
   block do
-    bootstrap_dicom = node['daris']['force_bootstrap']
-    if ! bootstrap_dicom then
+    bootstrap = node['daris']['force_bootstrap']
+    if ! bootstrap then
       # Sniff the 'network.tcl' for evidence that we created it ...
       line = `grep Generated #{mflux_home}/config/services/network.tcl`.strip()
       if /Mediaflux chef recipe/.match(line) then
-        # It appears that if you use run_action like this, triggering
-        # doesn't work.  But it is simpler this way anyway
-        resources(:log => "bootstrap").run_action(:write)
-        resources(:service => "mediaflux-restart").run_action(:restart)
-        resources(:bash => "mediaflux-running").run_action(:run)
-        resources(:bash => "create-pssd-store").run_action(:run)
-        resources(:bash => "create-#{dicom_store}-store").run_action(:run)
-        pkgs.each() do | pkg, file | 
-          resources(:bash => "install<-#{pkg}").run_action(:run)
-        end
-        resources(:template => "#{mflux_home}/config/services/network.tcl")
-          .run_action(:create)
+        bootstrap = true
       elsif /DaRIS chef recipe/.match(line) then
-        resources(:log => "no-bootstrap").run_action(:write)
+        bootstrap = false
       else
         # Badness.  Bail now before we do any more damage.
-        raise "We do not recognize the signature in the network.tcl " +
-          " file (#{line})."  
+        raise "Unrecognized signature in the network.tcl file (#{line}). " +
+          "Bailing out to avoid clobbering hand-made Mediaflux configs."
       end
+    end
+    if bootstrap then
+      # It appears that if you use run_action like this, triggering
+      # doesn't work.  But it is simpler this way anyway
+      resources(:log => "bootstrap").run_action(:write)
+      resources(:service => "mediaflux-restart").run_action(:restart)
+      resources(:bash => "mediaflux-running").run_action(:run)
+      resources(:bash => "create-pssd-store").run_action(:run)
+      resources(:bash => "create-#{dicom_store}-store").run_action(:run)
+      all_pkgs.each() do | pkg, file | 
+        resources(:bash => "install-#{pkg}").run_action(:run)
+      end
+      resources(:template => "#{mflux_home}/config/services/network.tcl")
+        .run_action(:create)
+    else
+      resources(:log => "no-bootstrap").run_action(:write)
     end
   end
 end
@@ -216,7 +229,7 @@ end
   end
 end
 
-pkgs.each() do | pkg, file | 
+all_pkgs.each() do | pkg, file | 
   bash "install-#{pkg}" do
     action :nothing
     user "root"
@@ -226,17 +239,17 @@ pkgs.each() do | pkg, file |
       "#{mfcommand} logoff"
   end
 end 
-
+  
 template "#{mflux_home}/config/services/network.tcl" do 
   action :nothing
   owner mflux_user
   source "network-tcl.erb"
-  variables({
-              :http_port => node['mediaflux']['http_port'],
-              :https_port => node['mediaflux']['https_port'],
-              :dicom_port => node['daris']['dicom_port']
-            })
-end
+    variables({
+                :http_port => node['mediaflux']['http_port'],
+                :https_port => node['mediaflux']['https_port'],
+                :dicom_port => node['daris']['dicom_port']
+              })
+  end
 
 service "mediaflux-restart-2" do
   service_name "mediaflux"
@@ -254,6 +267,7 @@ end
 bash "run-server-config" do
   code ". /etc/mediaflux/servicerc && " +
          "#{mfcommand} logon $MFLUX_DOMAIN $MFLUX_USER $MFLUX_PASSWORD && " +
-         "#{mfcommand} source #{mflux_user_home}/initial_daris_conf.tcl && " +
+         "#{mfcommand} source #{mflux_home}/config/initial_daris_conf.tcl && " +
          "#{mfcommand} logoff"
 end
+

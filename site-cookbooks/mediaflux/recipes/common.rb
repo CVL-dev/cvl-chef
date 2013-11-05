@@ -1,5 +1,5 @@
 #
-# Cookbook Name:: daris
+# Cookbook Name:: mediaflux
 # Recipe:: common
 #
 # Copyright (c) 2013, The University of Queensland
@@ -7,7 +7,7 @@
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
-# * Redistributions of source 1code must retain the above copyright
+# * Redistributions of source code must retain the above copyright
 # notice, this list of conditions and the following disclaimer.
 # * Redistributions in binary form must reproduce the above copyright
 # notice, this list of conditions and the following disclaimer in the
@@ -27,27 +27,55 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+##
+## Some base configuration that is common to mediaflux server and
+## client mc's.  This does not create the mediaflux service user ...
+##
+
 mflux_home = node['mediaflux']['home']
+mflux_bin = node['mediaflux']['bin'] || "#{mflux_home}/bin"
 mflux_user = node['mediaflux']['user']
-mflux_user_home = node['mediaflux']['user_home'] || mflux_home
 
-installers = node['mediaflux']['installers'] || 'installers'
-if ! installers.start_with?('/') then
-  installers = mflux_user_home + '/' + installers
+# This is hacky ... and probably wrong for some platforms
+if node['mediaflux']['install_java'] then
+  include_recipe 'java'
+end
+java_cmd = node['mediaflux']['java_command'] 
+if java_cmd == nil 
+  java_cmd = '/usr/bin/java'
 end
 
-package "wget" do
-  action :install
-  not_if { ::File.exists?("/usr/bin/wget") }
+java_version = `#{java_cmd} -version 2>&1` 
+log 'java-version' do
+  message "The selected Java command is #{java_cmd} and the " +
+          "version is #{java_version}"
+  level :debug
 end
 
-package "unzip" do
-  action :install
-  not_if { ::File.exists?('/usr/bin/unzip') }
+directory mflux_home do
+  owner 'root'
+  mode 0755
 end
 
-directory installers do
-  owner mflux_user
+directory "#{mflux_bin}" do
+  owner 'root'
+  mode 0755
 end
 
+directory '/etc/mediaflux' do
+  owner 'root'
+  mode 0755
+end
 
+template '/etc/mediaflux/mfluxrc' do 
+  owner 'root'
+  mode 0444
+  source 'mfluxrc.erb'
+  variables({
+    :mflux_home => mflux_home,
+    :mflux_bin => mflux_bin,
+    :http_port => node['mediaflux']['http_port'],
+    :https_port => node['mediaflux']['https_port'],
+    :java => java_cmd
+  })
+end

@@ -15,20 +15,31 @@
 if [ -r /etc/mediaflux/mfluxrc ] ; then
     . /etc/mediaflux/mfluxrc
 fi
+if [ -r /etc/mediaflux/mfuploadrc ] ; then
+    . /etc/mediaflux/mfuploadrc
+fi
 if [ -r $HOME/.mfluxrc ] ; then
     . $HOME/.mfluxrc
 fi
 
-JAVA=`which java`
-if [ -z "${JAVA}" ]; then
-        echo "Error: could not find java." >&2
-        exit 1
+if [ -z "$MFLUX_JAVA" ] ; then
+    JAVA=`which java`
+else
+    JAVA="$MFLUX_JAVA"
 fi
 
 JAR=`dirname $0`/pvupload.jar
 if [ ! -f "${JAR}" ]; then
-        echo "Error: could not find file pvupload.jar." >&2
-        exit 1
+    echo "Error: could not find file pvupload.jar." >&2
+    exit 1
+fi
+
+if [ -z "$MFLUX_HOST" -o -z "$MFLUX_PORT" -o -z "$MFLUX_TRANSPORT" -o \
+     -z "$MFLUX_DOMAIN" -o -z "$MFLUX_USER" -o -z "$MFLUX_PASSWORD" ] ; then
+    echo "Error: the following environment variables must be set; e.g. in an 'rc' file"
+    echo "    MFLUX_HOST, MFLUX_PORT, MFLUX_TRANSPORT,"
+    echo "    MFLUX_DOMAIN, MFLUX_USER, MFLUX_PASSWORD"
+    exit 1
 fi
 
 # The amount of time to wait to see if a corresponding DICOM series
@@ -50,7 +61,7 @@ NIG_META=-nig-subject-meta-add
 $JAVA -Dmf.host=$MFLUX_HOST -Dmf.port=$MFLUX_PORT \
     -Dmf.transport=$MFLUX_TRANSPORT -Dmf.domain=$MFLUX_DOMAIN \
     -Dmf.user=$MFLUX_USER -Dmf.password=$MFLUX_PASSWORD \
-    -jar $JAR -wait $MF_WAIT $MF_VERBOSE $NIG_META $AUTO_SUBJECT_CREATE $@
+    -jar $JAR -wait $MF_WAIT $MF_VERBOSE $NIG_META $AUTO_SUBJECT_CREATE "$@"
 
 RETVAL=$?
 exit $RETVAL

@@ -27,38 +27,36 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+include_recipe "mediaflux::common"
 include_recipe "daris::common"
 
 mflux_home = node['mediaflux']['home']
-mflux_user = node['mediaflux']['user']
-mflux_user_home = node['mediaflux']['user_home']
+mflux_bin = node['mediaflux']['bin'] || "#{mflux_home}/bin"
+mflux_user_home = node['mediaflux']['user_home'] || mflux_home
 url = node['daris']['download_url']
 user = node['daris']['download_user']
 password = node['daris']['download_password']
 
-installers = node['mediaflux']['installers']
+installers = node['mediaflux']['installers'] || 'installers'
 if ! installers.start_with?('/') then
   installers = mflux_user_home + '/' + installers
 end
 
 file = node.default['daris']['pvupload']
 bash "fetch-pvupload" do
-  user mflux_user
   code "wget --user=#{user} --password=#{password} --no-check-certificate " +
        "-O #{installers}/#{file} #{url}/#{file}"
   not_if { ::File.exists?("#{installers}/#{file}") }
 end
 
 bash "extract-pvupload" do
-  cwd "#{mflux_user_home}/bin"
-  user mflux_user
-  group mflux_user
+  cwd mflux_bin
+  user 'root'
   code "unzip -o #{installers}/#{file} pvupload.jar"
 end
 
-cookbook_file "#{mflux_user_home}/bin/mfpvupload.sh" do
-  owner mflux_user
-  group mflux_user
-  mode 0750
+cookbook_file "#{mflux_bin}/mfpvupload.sh" do
+  owner 'root'
+  mode 0755
   source "mfpvload.sh"
 end

@@ -27,12 +27,22 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+if platform?("redhat", "centos", "fedora", "scientific") then
+  package "nfs-utils" do
+  end
+elsif platform?("ubuntu") then
+  package "nfs-common" do
+  end
+else
+  raise "Platform #{node['platform']} not supported"
+end  
+
 package "autofs" do
   not_if { File::exists?("/etc/auto.master") }
 end
 
 # Validate the Store ids 
-node['qcloud']['stores'].each() do |store_id|
+node['qcloud']['store_ids'].each() do |store_id|
   if ! /Q[0-9][0-9]([0-9][0-9])?/.match(store_id) then
     raise "Invalid store id (#{store_id}) : expected Qnn or Qnnnn"
   end
@@ -67,7 +77,7 @@ elsif platform?("ubuntu") then
         pre-up /sbin/ifconfig eth1 mtu 9000
       EOS
       file = Chef::Util::FileEdit.new("/etc/network/interfaces")
-      file.insert_line_if_no_match("/eth1/", config)
+      file.insert_line_if_no_match("iface eth1 ", config)
       file.write_file
     end
     notifies :restart, "service[networking]", :immediately
@@ -92,7 +102,7 @@ if node['qcloud']['create_users'] then
     comment 'WebDAV'
     shell '/sbin/nologin'
   end
-  node['qcloud']['stores'].each() do |store_id|
+  node['qcloud']['store_ids'].each() do |store_id|
     num = /Q([0-9]+)/.match(store_id)[1].to_i()
     if num > 999 then
       raise "The store_id to uid mapping is not defined for #{store_id}"
@@ -116,7 +126,7 @@ end
 ruby_block "edit_auto_master" do
   block do
     file = Chef::Util::FileEdit.new("/etc/auto.master")
-    file.insert_line_if_no_match("/auto.qcloud/", "/- file:/etc/auto.qcloud")
+    file.insert_line_if_no_match("auto.qcloud", "/- file:/etc/auto.qcloud")
     file.write_file
   end
 end
@@ -129,7 +139,7 @@ template "/etc/auto.qcloud" do
   source "autofs_direct_map.erb"
   mode 0444
   variables ({
-    :store_ids => node['qcloud']['stores'],
+    :store_ids => node['qcloud']['store_ids'],
     :nfs_server => node['qcloud']['nfs_server'],
     :mount_dir => node['qcloud']['mount_dir'],
     :opts => opts

@@ -31,6 +31,8 @@ include_recipe "pvconv"
 
 include_recipe "daris::common"
 
+::Chef::Recipe.send(:include, DarisUrls)
+
 mflux_home = node['mediaflux']['home']
 mflux_bin = node['mediaflux']['bin'] || "#{mflux_home}/bin"
 mflux_user = node['mediaflux']['user']
@@ -39,7 +41,13 @@ url = node['daris']['download_url']
 user = node['daris']['download_user']
 password = node['daris']['download_password']
 
-pkgs = node['daris']['pkgs']
+pkgs = {
+  'nig_essentials' => getUrl(node, 'nig_essentials'),  
+  'nig_transcode' => getUrl(node, 'nig_transcode'),  
+  'pssd' => getUrl(node, 'pssd'),
+  'daris_portal' => getUrl(node, 'daris_portal')
+}
+
 local_pkgs = node['daris']['local_pkgs'] || {}
 all_pkgs = pkgs.merge(local_pkgs)
 installers = node['mediaflux']['installers'] || 'installers'
@@ -99,11 +107,12 @@ template "#{mflux_home}/config/initial_daris_conf.tcl" do
              })
 end
 
-pkgs.each() do | pkg, file | 
+pkgs.each() do | pkg, url | 
+  file = urlToFile(url)
   bash "fetch-#{pkg}" do
     user mflux_user
     code "wget --user=#{user} --password=#{password} --no-check-certificate " +
-         "-O #{installers}/#{file} #{url}/#{file}"
+         "-O #{installers}/#{file} #{url}"
     not_if { ::File.exists?("#{installers}/#{file}") }
   end
 end
@@ -130,18 +139,20 @@ template "#{mflux_home}/plugin/bin/pvconv.pl" do
   })
 end
 
-file = node.default['daris']['server_config']
+sc_url = getUrl(node, 'server_config')
+sc_file = urlToFile(sc_url)
+
 bash "fetch-server-config" do
   user mflux_user
   code "wget --user=#{user} --password=#{password} --no-check-certificate " +
-       "-O #{installers}/#{file} #{url}/#{file}"
-  not_if { ::File.exists?("#{installers}/#{file}") }
+         "-O #{installers}/#{sc_file} #{sc_url}"
+  not_if { ::File.exists?("#{installers}/#{sc_file}") }
 end
 
 bash 'extract-server-config' do
   cwd mflux_bin
   user 'root'
-  code "unzip -o #{installers}/#{file} server-config.jar"
+  code "unzip -o #{installers}/#{sc_file} server-config.jar"
 end
 
 cookbook_file "#{mflux_bin}/server-config.sh" do
@@ -229,7 +240,8 @@ end
   end
 end
 
-all_pkgs.each() do | pkg, file | 
+all_pkgs.each() do | pkg, url |
+  file = urlToFile(url) 
   bash "install-#{pkg}" do
     action :nothing
     user "root"

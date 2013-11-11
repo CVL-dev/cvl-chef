@@ -2,7 +2,7 @@
   "id": "steve",
   "user": "steve",
   "groups": [ "testing" ],
-  "name": [ "Stephen", "Random", "Person" ],
+  "names": [ "Stephen", "Random", "Person" ],
   "email": "steve@nowhere",
   "project_creator": true,
   "roles": [ ],

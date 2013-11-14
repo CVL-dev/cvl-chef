@@ -1,5 +1,5 @@
 #
-# Cookbook Name:: daris
+# Cookbook Name:: mediaflux
 # Recipe:: aar
 #
 # Copyright (c) 2013, The University of Queensland
@@ -27,7 +27,7 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-include_recipe "daris::common"
+include_recipe "mediaflux::common"
 
 mflux_home = node['mediaflux']['home']
 mflux_bin = node['mediaflux']['bin'] || "#{mflux_home}/bin"

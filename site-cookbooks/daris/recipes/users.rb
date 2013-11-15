@@ -1,6 +1,6 @@
 #
 # Cookbook Name:: daris
-# Recipe:: default
+# Recipe:: users
 #
 # Copyright (c) 2013, The University of Queensland
 # All rights reserved.
@@ -27,9 +27,35 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-include_recipe "daris::daris"
+include_recipe "daris::common"
 
-include_recipe "daris::pvupload"
+mflux_home = node['mediaflux']['home']
+mflux_bin = node['mediaflux']['bin'] || "#{mflux_home}/bin"
+mfcommand = "#{mflux_bin}/mfcommand"
 
-include_recipe "daris::dicom-client"
+daris_user_groups = node['daris']['user_groups']
+items = data_bag('daris_users')
+daris_users = items.map { |id| data_bag_item('daris_users', id) }
+password = node['daris']['default_password'] || 'secret'
 
+domain = node['mediaflux']['authentication_domain'] || 'users'
+
+if daris_user_groups && daris_users then
+  create_users = "#{mflux_home}/config/create-users.tcl"
+  template create_users do
+    source "create_users_tcl.erb"
+    variables ({
+                 :user_groups => daris_user_groups,
+                 :users => daris_users,
+                 :domain => domain,
+                 :password => password
+               }) 
+  end
+
+  bash "run-create-users" do
+    code ". /etc/mediaflux/servicerc && " +
+      "#{mfcommand} logon $MFLUX_DOMAIN $MFLUX_USER $MFLUX_PASSWORD && " +
+      "#{mfcommand} source #{create_users} && " +
+      "#{mfcommand} logoff"
+  end
+end

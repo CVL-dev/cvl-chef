@@ -26,18 +26,6 @@ proc init_daris_conf { } {
     if { $domain != "" } {
         authentication.domain.create :domain $domain :ifexists ignore
     }
-    set store "<%= @dicom_store %>"
-    set store_exists [xvalue exists [asset.store.exists :name $store]]
-    if { $store_exists == "false" } then {
-	error "DICOM store $store has not been created."
-    }
-    set namespace "<%= fillIn(@dicom_namespace, 'dicom') %>"
-    set namespace_exists [xvalue exists [asset.namespace.exists \
-					       :namespace $namespace]]
-    if { $namespace_exists == "false" } then {
-	asset.namespace.create :namespace $namespace \
-	    :store $store :description "DICOM namespace"
-    }
     set proxy_domain "<%= fillIn(@dicom_proxy_domain, '') %>"
     if { $proxy_domain != "" } {
         authentication.domain.create :domain $proxy_domain :ifexists ignore

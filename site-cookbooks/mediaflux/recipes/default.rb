@@ -29,12 +29,21 @@
 
 include_recipe "mediaflux::common"
 
+include_recipe "mediaflux::aar"
+
+include_recipe "mediaflux::aterm"
+
 mflux_home = node['mediaflux']['home']
 mflux_bin = node['mediaflux']['bin'] || "#{mflux_home}/bin"
+mflux_config = "#{mflux_home}/config"
 mflux_user = node['mediaflux']['user']
 mflux_user_home = node['mediaflux']['user_home'] || mflux_home
 mflux_fs = node['mediaflux']['volatile']
 url = node['mediaflux']['installer_url']
+
+domain = node['mediaflux']['authentication_domain'] || 'users'
+
+mfcommand = "#{mflux_bin}/mfcommand"
 
 # This is where we look for installers and license key files ...
 installers = node['mediaflux']['installers'] || 'installers'
@@ -44,11 +53,11 @@ end
 installer = node['mediaflux']['installer']
 
 # Can we find a licence file?
-have_licence = ::File.exists?("#{mflux_home}/config/licence.xml") ||
+have_licence = ::File.exists?("#{mflux_config}/licence.xml") ||
    ::File.exists?("#{installers}/licence.xml")
 
 # Can we find an SSL cert file?
-have_certs = ::File.exists?("#{mflux_home}/config/certs") ||
+have_certs = ::File.exists?("#{mflux_config}/certs") ||
    ::File.exists?("#{installers}/certs")
 
 # Do we need an SSL cert file?
@@ -73,16 +82,6 @@ user mflux_user do
   system true
   shell "/bin/false"
   home mflux_user_home
-end
-
-directory mflux_home do
-  owner mflux_user
-  mode 0755
-end
-
-directory "#{mflux_home}/bin" do
-  owner mflux_user
-  mode 0755
 end
 
 if mflux_user_home != mflux_home then
@@ -128,8 +127,8 @@ end
 # deposited them ...
 bash "rm-dummy-configs" do
   action :nothing
-  code "rm #{mflux_home}/config/services/network.tcl && " +
-    "rm #{mflux_home}/config/database/database.tcl"
+  code "rm #{mflux_config}/services/network.tcl && " +
+    "rm #{mflux_config}/database/database.tcl"
 end
 
 link "#{mflux_home}/volatile" do
@@ -176,17 +175,17 @@ template "#{mflux_bin}/change-mf-password.sh" do
              })
 end
 
-template "#{mflux_home}/config/database/database.tcl" do 
+template "#{mflux_config}/database/database.tcl" do 
   owner mflux_user
   source "database-tcl.erb"
   variables({
     :mflux_home => mflux_home
   })
   # This could have been tailored by a layered application ...
-  not_if { ::File.exists?("#{mflux_home}/config/database/database.tcl") }
+  not_if { ::File.exists?("#{mflux_config}/database/database.tcl") }
 end
 
-template "#{mflux_home}/config/services/network.tcl" do 
+template "#{mflux_config}/services/network.tcl" do 
   owner mflux_user
   source "network-tcl.erb"
   variables({
@@ -194,13 +193,7 @@ template "#{mflux_home}/config/services/network.tcl" do
     :https_port => node['mediaflux']['https_port']
   })
   # This could have been tailored by a layered application ...
-  not_if { ::File.exists?("#{mflux_home}/config/services/network.tcl") }
-end
-
-cookbook_file "#{mflux_bin}/mfcommand" do 
-  owner mflux_user
-  mode 0755
-  source "mfcommand.sh"
+  not_if { ::File.exists?("#{mflux_config}/services/network.tcl") }
 end
 
 cookbook_file "#{mflux_bin}/mediaflux" do 
@@ -213,12 +206,6 @@ cookbook_file "/etc/init.d/mediaflux" do
   owner "root"
   mode 0750
   source "mediaflux-init.sh"
-end
-
-cookbook_file "#{mflux_bin}/aterm" do 
-  owner mflux_user
-  mode 0755
-  source "aterm.sh"
 end
 
 if ! have_licence then
@@ -249,28 +236,74 @@ end
 
 # Install licence file if it isn't already installed
 bash "copy-licence" do
-  code "cp #{installers}/licence.xml #{mflux_home}/config/licence.xml" +
-       " && chmod 444 #{mflux_home}/config/licence.xml"
-  creates "#{mflux_home}/config/licence.xml"
-  not_if { ::File.exists?("#{mflux_home}/config/licence.xml") }
+  code "cp #{installers}/licence.xml #{mflux_config}/licence.xml" +
+       " && chmod 444 #{mflux_config}/licence.xml"
+  creates "#{mflux_config}/licence.xml"
+  not_if { ::File.exists?("#{mflux_config}/licence.xml") }
 end
 
 # Install SSL cert if it isn't already installed
 if have_certs then
   bash "copy-certs" do
-    code "cp #{installers}/certs #{mflux_home}/config/certs" +
-         " && chmod 444 #{mflux_home}/config/certs"
-    creates "#{mflux_home}/config/certs"
-    not_if { ::File.exists?("#{mflux_home}/config/certs") }
+    code "cp #{installers}/certs #{mflux_config}/certs" +
+         " && chmod 444 #{mflux_config}/certs"
+    creates "#{mflux_config}/certs"
+    not_if { ::File.exists?("#{mflux_config}/certs") }
   end
+end
+
+template "#{mflux_config}/initial_mflux_conf.tcl" do 
+  source "initial_mflux_conf.erb"
+  owner mflux_user
+  group mflux_user
+  mode 0400
+  helpers (MfluxHelpers)
+  variables ({
+               :server_name => node['mediaflux']['server_name'],
+               :server_organization => node['mediaflux']['server_organization'],
+               :jvm_memory_max => node['mediaflux']['jvm_memory_max'],
+               :jvm_memory_perm_max => node['mediaflux']['jvm_memory_max'],
+               :mail_smtp_host => node['mediaflux']['mail_smtp_host'],
+               :mail_smtp_port => node['mediaflux']['mail_smtp_port'],
+               :mail_from => node['mediaflux']['mail_from'],
+               :notification_from => node['mediaflux']['notification_from'],
+               :authentication_domain => domain
+             })
 end
 
 # The 'defer_start' hack allows another recipe to do stuff
 # before the mediaflux service is started.
-service "mediaflux" do
-  action ( if node['mediaflux']['defer_start'] then
-             [ :enable, :restart ]
-           else
-             [ :enable ]
-           end )
+if node['mediaflux']['defer_start'] then
+  service 'mediaflux' do
+    action :enable
+  end
+else
+  service 'mediaflux' do
+    action [:enable, :restart]
+    notifies :run, "bash[mediaflux-running]", :immediately    
+  end
+
+  # Some initial configuration of the mediaflux service
+  bash 'run-server-config' do
+    code ". /etc/mediaflux/servicerc && " +
+      "#{mfcommand} logon $MFLUX_DOMAIN $MFLUX_USER $MFLUX_PASSWORD && " +
+      "#{mfcommand} source #{mflux_config}/initial_mflux_conf.tcl && " +
+      "#{mfcommand} logoff"
+    notifies :restart, "service[mediaflux-restart]", :immediately    
+  end
+
+  service 'mediaflux-restart' do
+    service_name 'mediaflux'
+    action :nothing
+    notifies :run, "bash[mediaflux-running]", :immediately    
+  end
+
+  bash "mediaflux-running" do
+    action :nothing
+    user mflux_user
+    code ". /etc/mediaflux/mfluxrc ; " +
+      "wget ${MFLUX_TRANSPORT}://${MFLUX_HOST}:${MFLUX_PORT}/ " +
+      "    --retry-connrefused --no-check-certificate -O /dev/null " +
+      "    --waitretry=1 --timeout=2 --tries=30"
+  end
 end

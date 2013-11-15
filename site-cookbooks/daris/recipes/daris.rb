@@ -1,6 +1,6 @@
 #
 # Cookbook Name:: daris
-# Recipe:: default
+# Recipe:: daris
 #
 # Copyright (c) 2013, The University of Queensland
 # All rights reserved.
@@ -76,34 +76,30 @@ if ! dicom_store || dicom_store == '' then
   dicom_store = 'dicom'
 end
 
-domain = node['mediaflux']['authentication_domain']
-if ! domain || domain == '' then
-  domain = node['daris']['ns'] 
-end
-
 template "#{mflux_home}/config/initial_daris_conf.tcl" do 
   source "initial_daris_conf_tcl.erb"
   owner mflux_user
   group mflux_user
   mode 0400
-  helpers (DarisHelpers)
+  helpers (MfluxHelpers)
   variables ({
-               :password => node['mediaflux']['admin_password'],
-               :server_name => node['mediaflux']['server_name'],
-               :server_organization => node['mediaflux']['server_organization'],
-               :jvm_memory_max => node['mediaflux']['jvm_memory_max'],
-               :jvm_memory_perm_max => node['mediaflux']['jvm_memory_max'],
-               :mail_smtp_host => node['mediaflux']['mail_smtp_host'],
-               :mail_smtp_port => node['mediaflux']['mail_smtp_port'],
-               :mail_from => node['mediaflux']['mail_from'],
-               :notification_from => node['mediaflux']['notification_from'],
-               :authentication_domain => domain,
-               :dicom_namespace => node['daris']['dicom_namespace'],
-               :dicom_store => dicom_store,
                :dicom_proxy_domain => node['daris']['dicom_proxy_domain'],
                :dicom_proxy_user_names => node['daris']['dicom_proxy_user_names'],
                :dicom_ingest_notifications => node['daris']['dicom_ingest_notifications'],
                :ns => node['daris']['ns']
+             })
+end
+
+template "#{mflux_home}/config/create_stores.tcl" do 
+  source "create_stores_tcl.erb"
+  owner mflux_user
+  group mflux_user
+  mode 0400
+  helpers (MfluxHelpers)
+  variables ({
+               :dicom_namespace => node['daris']['dicom_namespace'],
+               :dicom_store => dicom_store,
+               :fs_type => node['daris']['file_system_type']
              })
 end
 
@@ -149,6 +145,7 @@ bash "fetch-server-config" do
   not_if { ::File.exists?("#{installers}/#{sc_file}") }
 end
 
+# We don't use this tool for configuration.  But someone might want to ...
 bash 'extract-server-config' do
   cwd mflux_bin
   user 'root'
@@ -181,15 +178,14 @@ ruby_block "bootstrap_test" do
       # It appears that if you use run_action like this, triggering
       # doesn't work.  But it is simpler this way anyway
       resources(:log => "bootstrap").run_action(:write)
-      resources(:service => "mediaflux-restart").run_action(:restart)
       resources(:bash => "mediaflux-running").run_action(:run)
-      resources(:bash => "create-pssd-store").run_action(:run)
-      resources(:bash => "create-#{dicom_store}-store").run_action(:run)
+      resources(:bash => "create-stores").run_action(:run)
       all_pkgs.each() do | pkg, file | 
         resources(:bash => "install-#{pkg}").run_action(:run)
       end
       resources(:template => "#{mflux_home}/config/services/network.tcl")
         .run_action(:create)
+      resources(:service => "mediaflux-restart").run_action(:restart)
     else
       resources(:log => "no-bootstrap").run_action(:write)
     end
@@ -223,21 +219,18 @@ bash "mediaflux-running" do
   code ". /etc/mediaflux/mfluxrc ; " +
     "wget ${MFLUX_TRANSPORT}://${MFLUX_HOST}:${MFLUX_PORT}/ " +
     "    --retry-connrefused --no-check-certificate -O /dev/null " +
-    "    --waitretry=1 --timeout=2 --tries=10"
+    "    --waitretry=1 --timeout=2 --tries=30"
 end 
 
-['pssd', dicom_store ].each() do |store| 
-  bash "create-#{store}-store" do
-    action :nothing
-    user "root"
-    code ". /etc/mediaflux/servicerc && " +
-      "#{mfcommand} logon $MFLUX_DOMAIN $MFLUX_USER $MFLUX_PASSWORD && " +
-      "#{mfcommand} asset.store.create :name #{store} :local true " +
-      "    :type #{node['daris']['file_system_type']} " +
-      "    :automount true  && " +
-      "#{mfcommand} logoff"
-    not_if { ::File.exists?( "#{mflux_home}/volatile/stores/#{store}" ) }
-  end
+bash "create-stores" do
+  action :nothing
+  user "root"
+  code ". /etc/mediaflux/servicerc && " +
+    "#{mfcommand} logon $MFLUX_DOMAIN $MFLUX_USER $MFLUX_PASSWORD && " +
+    "#{mfcommand} source #{mflux_home}/config/create_stores.tcl && " +
+    "#{mfcommand} logoff"
+  not_if { ::File.exists?("#{mflux_home}/volatile/stores/pssd") &&
+           ::File.exists?("#{mflux_home}/volatile/stores/#{dicom_store}") }
 end
 
 all_pkgs.each() do | pkg, url |
@@ -263,23 +256,17 @@ template "#{mflux_home}/config/services/network.tcl" do
               })
   end
 
-service "mediaflux-restart-2" do
-  service_name "mediaflux"
-  action :restart
-end
-
 bash "mediaflux-running-2" do
   user mflux_user
   code ". /etc/mediaflux/mfluxrc ; " +
     "wget ${MFLUX_TRANSPORT}://${MFLUX_HOST}:${MFLUX_PORT}/ " +
     "    --retry-connrefused --no-check-certificate -O /dev/null " +
-    "    --waitretry=1 --timeout=2 --tries=10"
+    "    --waitretry=1 --timeout=2 --tries=20"
 end
 
-bash "run-server-config" do
+bash "run-initial-daris-config" do
   code ". /etc/mediaflux/servicerc && " +
          "#{mfcommand} logon $MFLUX_DOMAIN $MFLUX_USER $MFLUX_PASSWORD && " +
          "#{mfcommand} source #{mflux_home}/config/initial_daris_conf.tcl && " +
          "#{mfcommand} logoff"
 end
-

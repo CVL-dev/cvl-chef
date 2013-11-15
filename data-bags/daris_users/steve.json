@@ -1,0 +1,10 @@
+{
+  "id": "steve",
+  "user": "steve",
+  "groups": [ "testing" ],
+  "names": [ "Stephen", "Random", "Person" ],
+  "email": "steve@nowhere",
+  "project_creator": true,
+  "roles": [ ],
+  "password": "testing"
+}

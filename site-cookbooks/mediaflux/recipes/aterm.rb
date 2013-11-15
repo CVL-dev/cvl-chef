@@ -1,6 +1,6 @@
 #
-# Cookbook Name:: daris
-# Recipe:: default
+# Cookbook Name:: mediaflux
+# Recipe:: aterm
 #
 # Copyright (c) 2013, The University of Queensland
 # All rights reserved.
@@ -27,9 +27,30 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-include_recipe "daris::daris"
+include_recipe "mediaflux::common"
 
-include_recipe "daris::pvupload"
+mflux_home = node['mediaflux']['home']
+mflux_bin = node['mediaflux']['bin'] || "#{mflux_home}/bin"
 
-include_recipe "daris::dicom-client"
+# Fetch the aterm.jar file from the Mediaflux server ... if we don't have it.
+bash "fetch-aterm-jar" do
+  user 'root'
+  code ". /etc/mediaflux/mfluxrc && " +
+    "URL=${MFLUX_TRANSPORT}://${MFLUX_HOST}:${MFLUX_PORT} && " +
+    "wget --no-check-certificate -O #{mflux_bin}/aterm.jar $URL/mflux/aterm.jar"
+  not_if { ::File.exists?("#{mflux_bin}/aterm.jar") }
+end
+
+cookbook_file "#{mflux_bin}/aterm" do
+  owner 'root'
+  mode 0755
+  source "aterm.sh"
+end
+
+cookbook_file "#{mflux_bin}/mfcommand" do 
+  owner 'root'
+  mode 0755
+  source "mfcommand.sh"
+end
+
 

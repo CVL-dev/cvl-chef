@@ -1,0 +1,6 @@
+{
+  "id": "test",
+  "proxy_user": "test",
+  "hostname": "localhost",
+  "roles": [ ]
+}

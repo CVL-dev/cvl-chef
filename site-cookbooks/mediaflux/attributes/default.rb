@@ -15,6 +15,10 @@ node.default['mediaflux']['installer_url'] = nil
 
 node.default['mediaflux']['host'] = nil           # defaults to "this host"
 
+# This should be set to true to signify that you have read, and accepted 
+# the Mediaflux license agreement.
+node.default['mediaflux']['accept_license_agreement'] = nil
+
 # If either of these is unset then the corresponding service endpoint
 # is not enabled.  Note that we default to using "high" ports because of
 # the difficulty of getting a non-root Java application to bind to a 
@@ -34,6 +38,10 @@ node.default['mediaflux']['authentication_domain'] = nil
 
 node.default['mediaflux']['install_java'] = true
 node.default['mediaflux']['java_command'] = nil
+
+# These java opts go into the common 'mfluxrc' file and are available 
+# for mediaflux and 3rd-party Java clients ... as $MFLUX_JAVA_OPTS
+node.default['mediaflux']['client_jvm_opts'] = ''
 
 # These apply to the mediaflux server only.
 node.default['mediaflux']['jvm_memory_max'] = nil

@@ -29,10 +29,6 @@
 
 include_recipe "mediaflux::common"
 
-include_recipe "mediaflux::aar"
-
-include_recipe "mediaflux::aterm"
-
 mflux_home = node['mediaflux']['home']
 mflux_bin = node['mediaflux']['bin'] || "#{mflux_home}/bin"
 mflux_config = "#{mflux_home}/config"
@@ -98,7 +94,7 @@ end
 
 if url == nil
   if ! ::File.exists?("#{installers}/#{installer}")
-    log 'You must either download the installer by hand' + 
+    log 'You must either download the Mediaflux installer by hand' + 
         ' or set the mediaflux.installer_url attribute' do
       level :fatal
     end
@@ -111,24 +107,35 @@ else
   end
 end
 
+if ! File.exists?("#{mflux_home}/PACKAGE.MF") &&
+    node['mediaflux']['accept_license_agreement'] != true then
+  log 'You must either run the Mediaflux installer by hand' + 
+    ' or set the mediaflux.accept_license_agreement attribute to true' +
+    ' to signify that you have read and accept the Mediaflux license' do
+    level :fatal
+  end
+  return
+end
+
 bash "install-mediaflux" do 
-  not_if { ::File.exists?("#{mflux_home}/PACKAGE.MF") }
-  user mflux_user
+  not_if { File.exists?("#{mflux_home}/PACKAGE.MF") }
   code <<-EOH
 java -jar #{installers}/#{installer} nogui << EOF
 accept
 #{mflux_home}
 EOF
 EOH
-  notifies :run, "bash[rm-dummy-configs]", :immediately
+  notifies :run, "bash[tweak-installation]", :immediately
 end
 
-# These two files need to be replaced if and only if the installer just 
-# deposited them ...
-bash "rm-dummy-configs" do
+# Two files need to be replaced if and only if the installer just 
+# deposited them.  Also, we need to change the file ownership of the
+# installed files ...
+bash "tweak-installation" do
   action :nothing
   code "rm #{mflux_config}/services/network.tcl && " +
-    "rm #{mflux_config}/database/database.tcl"
+    "rm #{mflux_config}/database/database.tcl && " +
+    "chown -R #{mflux_user}:#{mflux_user} #{mflux_home}"
 end
 
 link "#{mflux_home}/volatile" do
@@ -139,6 +146,10 @@ end
 directory "#{mflux_home}/volatile" do
   owner mflux_user
   not_if { mflux_fs && ::File.directory?(mflux_fs) }
+end
+
+bash "set-volatile-owner" do
+  code "chown --dereference #{mflux_user}:#{mflux_user} #{mflux_home}/volatile"
 end
 
 ['logs', 'tmp', 'database', 'stores', 'shopping'].each do |dir|
@@ -271,6 +282,11 @@ template "#{mflux_config}/initial_mflux_conf.tcl" do
              })
 end
 
+include_recipe "mediaflux::aar"
+
+include_recipe "mediaflux::aterm"
+
+
 # The 'defer_start' hack allows another recipe to do stuff
 # before the mediaflux service is started.
 if node['mediaflux']['defer_start'] then
@@ -307,3 +323,5 @@ else
       "    --waitretry=1 --timeout=2 --tries=30"
   end
 end
+
+

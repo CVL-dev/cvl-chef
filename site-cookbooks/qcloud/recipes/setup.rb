@@ -1,6 +1,6 @@
 #
-# Cookbook Name:: pvconv
-# Recipe:: default
+# Cookbook Name:: qcloud
+# Recipe:: setup
 #
 # Copyright (c) 2013, The University of Queensland
 # All rights reserved.
@@ -27,58 +27,6 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-perl_site_bin = /.*'(.*)';/.match(`perl -V:installsitebin`)[1]
-pvconv_bin = "#{perl_site_bin}/pvconv.pl"
-node.override['pvconv']['command'] = pvconv_bin
-
-if ::File.exists?( pvconv_bin ) then
-  return
-end
-
-include_recipe "cpan::bootstrap"
-
-build_dir="/tmp/pvconv-build"
-distro="/tmp/pvconv.tar.gz"
-
-cpan_client 'ExtUtils::MakeMaker' do
-  user "root"
-  group "root"
-  install_type "cpan_module"
-  action :install
-end
-
-cpan_client 'Getopt::ArgvFile' do
-  user "root"
-  group "root"
-  install_type "cpan_module"
-  action :install
-end
-
-cpan_client 'Math::Matrix' do
-  user "root"
-  group "root"
-  install_type "cpan_module"
-  action :install
-end
-
-remote_file distro do
-  source node['pvconv']['download_url']
-  not_if { ::File.exists?(distro) }
-end
-
-bash "prep-build-dir" do
-  code "rm -rf #{build_dir} && mkdir #{build_dir} && " +
-       "cd #{build_dir} && tar xfz #{distro}"
-end
-
-bash "build-and-install" do
-   user "root"
-   cwd build_dir
-   code "cd pvconv-* && perl Makefile.PL && make && make install"
-end
-
-bash "tidy-build" do
-  user "root"
-perl_site_bin
-  code "rm -rf #{build_dir}"
+if node['tz'] then
+  include_recipe 'timezone-ii::default'
 end

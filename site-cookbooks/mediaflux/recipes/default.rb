@@ -80,11 +80,10 @@ user mflux_user do
   home mflux_user_home
 end
 
-if mflux_user_home != mflux_home then
-  directory mflux_user_home do
-    owner mflux_user
-    mode 0755
-  end
+directory mflux_user_home do
+  owner mflux_user
+  group mflux_user
+  mode 0755
 end
 
 directory installers do
@@ -315,5 +314,59 @@ else
       "wget ${MFLUX_TRANSPORT}://${MFLUX_HOST}:${MFLUX_PORT}/ " +
       "    --retry-connrefused --no-check-certificate -O /dev/null " +
       "    --waitretry=1 --timeout=2 --tries=30"
+  end
+end
+
+backup_dir = node['mediaflux']['backup_dir'] || "#{mflux_home}/volatile/backups"
+backup_replica = node['mediaflux']['backup_replica']
+backup_keep_days = node['mediaflux']['backup_keep_days'] || 5
+
+directory backup_dir do
+  owner mflux_user
+  group mflux_user
+  mode 0750
+end
+
+template "#{mflux_home}/bin/backup.sh" do
+  source 'backup_sh.erb'
+  owner mflux_user
+  mode 0700
+  variables ({
+               'backup_dir' => backup_dir,
+               'replica' => backup_replica,
+               'keep_days' => backup_keep_days
+             })
+end
+
+cookbook_file "#{mflux_config}/backup.tcl" do
+  source 'backup.tcl'
+  owner mflux_user
+  mode 0600
+end
+
+times = node.default['mediaflux']['backup_cron_times']
+mailto = node.default['mediaflux']['backup_cron_mailto']
+if node['mediaflux']['backup_cron'] then
+  if mailto && mailto != '' then
+    cron 'mediaflux_backup_cron' do
+      command "#{mflux_home}/bin/backup.sh"
+      minute times[0]
+      hour times[1]
+      day times[2]
+      month times[3]
+      weekday times[4]
+      user mflux_user
+      mailto mailto
+    end
+  else
+    cron 'mediaflux_backup_cron' do
+      command "#{mflux_home}/bin/backup.sh"
+      minute times[0]
+      hour times[1]
+      day times[2]
+      month times[3]
+      weekday times[4]
+      user mflux_user
+    end
   end
 end

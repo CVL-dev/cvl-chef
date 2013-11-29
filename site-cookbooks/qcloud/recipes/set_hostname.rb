@@ -1,6 +1,6 @@
 #
 # Cookbook Name:: qcloud
-# Recipe:: setup
+# Recipe:: set_hostname
 #
 # Copyright (c) 2013, The University of Queensland
 # All rights reserved.
@@ -27,12 +27,66 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-require 'ipaddr'
+require 'resolv'
 
-if node['qcloud']['tz'] then
-  include_recipe 'timezone-ii::default'
+ip = node['ipaddress']
+ip_fqdns = Resolv::DNS.new.getnames(ip)
+
+fqdn = node['qcloud']['set_fqdn'] || ip_fqdns[0]
+if fqdn == '*' then
+  fqdn = ip_fqdns[0]
 end
 
-if node['qcloud']['set_fqdn'] then
-  include_recipe 'qcloud::set_hostname'
+/^([^.]+)/ =~ fqdn
+hostname = $1
+
+file '/etc/hostname' do
+  content "#{hostname}\n"
+  mode "0644"
+  notifies :reload, "ohai[reload]"
 end
+
+execute "hostname #{hostname}" do
+  only_if { node['hostname'] != hostname }
+  notifies :reload, "ohai[reload]"
+end
+
+aliases = [ hostname ]
+ip_fqdns.each() do |ip_fqdn|
+  f = ip_fqdn.to_s()
+  if fqdn != f then
+    aliases << f
+    match = /^([^.]+)\..+$/.match(f)
+    if match then
+      aliases << match[1]
+    end
+  end
+end
+
+hostsfile_entry "set hostnames" do
+  ip_address ip
+  hostname fqdn
+  aliases aliases
+  action :create
+  notifies :reload, "ohai[reload]"
+end
+
+# 
+# For some reason, 'create_if_missing' below is treated as 'create' which
+# results in an unnecessary update which is potentially harmful for some
+# platforms; e.g. when the out-of-the-box "/etc/hosts" has aliases for 
+# localhost that other applications / services depend on.
+#
+# hostsfile_entry "set localhost" do
+#   ip_address "127.0.0.1"
+#   hostname "localhost"
+#   action :create_if_missing
+#   notifies :reload, "ohai[reload]"
+# end
+
+ohai "reload" do
+  action :nothing
+end
+
+
+

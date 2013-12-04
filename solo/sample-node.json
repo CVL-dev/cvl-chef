@@ -1,10 +1,10 @@
 {
-  "name": "daris-chefsolo",
+  "name": "sample-chefsolo",
   "chef_environment": "_default",
-  "mediaflux": {
-     "installer_url": "change-me"
+  "qcloud": {
+     "set_fqdn": "*"
   },
   "run_list": [
-    "recipe[daris]"
+    "recipe[qcloud::setup]"
   ]
 }

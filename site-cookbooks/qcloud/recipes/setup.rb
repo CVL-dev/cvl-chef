@@ -41,3 +41,11 @@ end
 if node['qcloud']['root_email'] then
   include_recipe 'qcloud::rootmail'
 end
+
+if node['qcloud']['logwatch'] then
+  include_recipe 'logwatch::default'
+end
+
+if node['qcloud']['mail_relay'] then
+  include_recipe 'qcloud::mail_relay'
+end

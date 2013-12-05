@@ -59,19 +59,28 @@ Chef Solo and the recipes in this repo:
 1. Use yum or apt-get to install git
 
 2. Install the latest version of chef-client:
+
          sudo bash -c "true && curl -L https://www.opscode.com/chef/install.sh | bash"
+
 3. Create a directory for doing chef solo work.
+
          sudo mkdir /var/chef-solo
          sudo chown <your-id> /var/chef-solo
+
 4. Clone this repo ...
+
          cd /var/chef-solo
          git clone <the url>
          cd cvl-chef
+
 5. Make a node definition ...
+
          cp solo/sample-node.json mynode.json
          # edit mynode.json to add override attributes, 
          #    change the runlist and so on
+
 6. Run it using chef-solo
+
          sudo chef-solo -c solo/solo.rb -j mynode.json -ldebug
 
 If you intend to "get serious" with Chef, will need to do a lot more reading.  In addition, you will need to look into things like:

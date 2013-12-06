@@ -49,3 +49,7 @@ end
 if node['qcloud']['mail_relay'] then
   include_recipe 'qcloud::mail_relay'
 end
+
+if node['qcloud']['apply_patches'] then
+  include_recipe 'qcloud::autopatching'
+end

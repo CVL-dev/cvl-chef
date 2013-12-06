@@ -47,14 +47,41 @@ when 'debian'
   ruby_block 'yum-cron-configure' do
     block do
       u = 'Unattended-Upgrade::'
+      p = '^(//)?' + u
+      all_origins = ['updates', 'security', 'stable']
+      case target
+      when 'all'
+        origins = all_origins
+      when 'security'
+        origins = ['security']
+      else
+        origins = []
+      end
+
       file = Chef::Util::FileEdit.new('/etc/apt/apt.conf.d/' +
                                       '50unattended-upgrades')
-      file.search_file_replace_line(/::MinimalSteps/, 
+      file.search_file_replace_line(p + 'MinimalSteps ', 
                                     u + 'MinimalSteps "true";')
-      file.search_file_replace_line(/::Mail/, 
+      file.search_file_replace_line(p + 'Mail ', 
                                     u + 'Mail "root";')
-      file.search_file_replace_line(/::Automatic-Reboot/, 
+      file.search_file_replace_line(p + 'Automatic-Reboot ', 
                                     u + 'Automatic-Reboot "true";')
+      # Since it is not entirely clear what origins will be available,
+      # we manage them by toggling the "comment" on relevant lines in
+      # the existing files Allowed-Origins list.
+      if ! origins.empty? then
+        sig = "(\\$\\{distro_id}|Ubuntu)"
+        origins.each() do |o|
+          # Uncomment line
+          file.search_file_replace("^(//)?(\\s*\"#{sig}.*#{o}\")", '\2')
+        end
+        all_origins.each() do |o|
+          if origins.index(o) == nil then
+            # Comment out line
+            file.search_file_replace("^(//)?(\\s*\"#{sig}.*#{o}\")", '//\2')
+          end
+        end
+      end
       file.write_file
     end
   end

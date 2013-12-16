@@ -26,6 +26,13 @@ end
 
 locale_settings = node['locale'].to_hash()
 
+if locale_settings['lang'] == nil 
+  current_lang = MixLib::ShellOut.new(
+          'expr `locale | grep LANG=` : ^LANG=(.*)$').run_command().stdout
+  Chef::Log.warn("current_lang is #{current_lang}")
+  locale_settings['lang'] = current_lang || "en_US.utf8"
+end
+
 # Some applications depend on these locale variables ... so default them
 if locale_settings['lc_all'] == nil 
   locale_settings['lc_all'] = locale_settings['lang']
@@ -38,7 +45,7 @@ end
 ruby_block "check locales" do
   block do
     locale_settings.each() do |key, value|
-      cmd = Chef::ShellOut.new("locale -a | grep ^#{value}$").run_command
+      cmd = MixLib::ShellOut.new("locale -a | grep ^#{value}$").run_command
       unless cmd.exitstatus == 0 
         Chef::Log.warn("The requested locale '#{value}' is not known or not installed")
       end

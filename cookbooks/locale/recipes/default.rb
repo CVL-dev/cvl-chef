@@ -30,7 +30,7 @@ ruby_block "check locales" do
     locale_settings.each() do |value|
       # Check the locale names are known
       cmd = Chef::ShellOut.new("locale -a | grep ^#{value}$").run_command
-      unless cmd.exit_status == 0 
+      unless cmd.exitstatus == 0 
         raise "The requested locale '#{value}' is not known or not installed"
       end
     end

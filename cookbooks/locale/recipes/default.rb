@@ -18,22 +18,45 @@
 #
 
 if platform?("ubuntu", "debian")
-
   package "locales" do
     action :install
   end
+end
 
-  execute "Update locale" do
-    command "update-locale LANG=#{node[:locale][:lang]}"
+locale_settings = node['locale'].to_hash()
+
+ruby_block "check locales" do
+  block do
+    locale_settings.each() do |value|
+      # Check the locale names are known
+      cmd = Chef::ShellOut.new("locale -a | grep ^#{value}$").run_command
+      unless cmd.exit_status == 0 
+        raise "The requested locale '#{value}' is not known or not installed"
+      end
+    end
   end
+end
 
+# Some applications depend on these locale variables ... so default them
+if locale_settings['lc_all'] = nil 
+  locale_settings['lc_all'] = locale_settings['lang']
+end
+if locale_settings['language'] = nil 
+  locale_settings['language'] = locale_settings['lang']
+end
+
+if platform?("ubuntu", "debian")
+  locale_settings.each() do |key, value|
+    execute "Update locale" do
+      command "update-locale #{key.upcase}=#{value}"
+    end
+  end
 end
 
 if platform?("redhat", "centos", "fedora")
-
-  execute "Update locale" do
-    command "locale -a | grep ^#{node[:locale][:lang]}$ && sed -i 's|LANG=.*|LANG=#{node[:locale][:lang]}|' /etc/sysconfig/i18n"
+  locale_settings.each() do |key, value|
+    execute "Update locale" do
+      command "sed -i 's|#{key.upcase}=.*|#{key.upcase}=#{value}|' /etc/sysconfig/i18n"
   end
-
 end
 

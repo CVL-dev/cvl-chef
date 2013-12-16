@@ -57,6 +57,7 @@ if platform?("redhat", "centos", "fedora")
   locale_settings.each() do |key, value|
     execute "Update locale" do
       command "sed -i 's|#{key.upcase}=.*|#{key.upcase}=#{value}|' /etc/sysconfig/i18n"
+    end
   end
 end
 

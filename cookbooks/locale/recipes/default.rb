@@ -27,7 +27,7 @@ locale_settings = node['locale'].to_hash()
 
 ruby_block "check locales" do
   block do
-    locale_settings.each() do |value|
+    locale_settings.each() do |key, value|
       # Check the locale names are known
       cmd = Chef::ShellOut.new("locale -a | grep ^#{value}$").run_command
       unless cmd.exitstatus == 0 

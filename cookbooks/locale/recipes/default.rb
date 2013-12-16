@@ -23,7 +23,9 @@ if platform?("ubuntu", "debian")
   end
 end
 
+Chef::Log.warn(node['locale'])
 locale_settings = node['locale'].to_hash()
+Chef::Log.warn(locale_settings)
 
 ruby_block "check locales" do
   block do

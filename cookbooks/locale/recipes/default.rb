@@ -23,7 +23,6 @@ if platform?("ubuntu", "debian")
   end
 end
 
-Chef::Log.warn(node['locale'])
 locale_settings = node['locale'].to_hash()
 
 # Some applications depend on these locale variables ... so default them
@@ -34,13 +33,10 @@ if locale_settings['language'] == nil
   locale_settings['language'] = locale_settings['lang']
 end
 
-Chef::Log.warn(locale_settings)
-
 # Check the locale names are known
 ruby_block "check locales" do
   block do
     locale_settings.each() do |key, value|
-      Chef::Log.warn("Checking '#{key}' -> '#{value}'")
       cmd = Chef::ShellOut.new("locale -a | grep ^#{value}$").run_command
       unless cmd.exitstatus == 0 
         Chef::Log.warn("The requested locale '#{value}' is not known or not installed")
@@ -48,8 +44,6 @@ ruby_block "check locales" do
     end
   end
 end
-
-return
 
 if platform?("ubuntu", "debian")
   locale_settings.each() do |key, value|

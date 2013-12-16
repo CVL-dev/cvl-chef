@@ -25,12 +25,21 @@ end
 
 Chef::Log.warn(node['locale'])
 locale_settings = node['locale'].to_hash()
+
+# Some applications depend on these locale variables ... so default them
+if locale_settings['lc_all'] == nil 
+  locale_settings['lc_all'] = locale_settings['lang']
+end
+if locale_settings['language'] == nil 
+  locale_settings['language'] = locale_settings['lang']
+end
+
 Chef::Log.warn(locale_settings)
 
+# Check the locale names are known
 ruby_block "check locales" do
   block do
     locale_settings.each() do |key, value|
-      # Check the locale names are known
       Chef::Log.warn("Checking '#{key}' -> '#{value}'")
       cmd = Chef::ShellOut.new("locale -a | grep ^#{value}$").run_command
       unless cmd.exitstatus == 0 
@@ -38,14 +47,6 @@ ruby_block "check locales" do
       end
     end
   end
-end
-
-# Some applications depend on these locale variables ... so default them
-if locale_settings['lc_all'] = nil 
-  locale_settings['lc_all'] = locale_settings['lang']
-end
-if locale_settings['language'] = nil 
-  locale_settings['language'] = locale_settings['lang']
 end
 
 return

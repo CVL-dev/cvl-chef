@@ -29,7 +29,7 @@ ruby_block "check locales" do
   block do
     locale_settings.each() do |key, value|
       # Check the locale names are known
-      Chef::log.warn("Checking #'{key}' -> '#{value}'"
+      Chef::log.warn("Checking #'{key}' -> '#{value}'")
       cmd = Chef::ShellOut.new("locale -a | grep ^#{value}$").run_command
       unless cmd.exitstatus == 0 
         raise "The requested locale '#{value}' is not known or not installed"

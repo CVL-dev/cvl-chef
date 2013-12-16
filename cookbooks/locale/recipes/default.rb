@@ -27,11 +27,11 @@ end
 locale_settings = node['locale'].to_hash()
 
 if locale_settings['lang'] == nil 
-  cmd = Mixlib::ShellOut.new(
-          'expr `locale | grep LANG=` : ^LANG=(.*)$').run_command
+  cmd = Mixlib::ShellOut.new('locale | grep ^LANG=').run_command
   current_lang = cmd.stdout
   Chef::Log.warn("current_lang is #{current_lang}")
-  locale_settings['lang'] = current_lang || "en_US.utf8"
+  # locale_settings['lang'] = current_lang || "en_US.utf8"
+  locale_settings['lang'] = "en_US.utf8"
 end
 
 # Some applications depend on these locale variables ... so default them

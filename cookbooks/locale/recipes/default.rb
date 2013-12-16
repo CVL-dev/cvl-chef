@@ -32,7 +32,7 @@ ruby_block "check locales" do
       Chef::Log.warn("Checking '#{key}' -> '#{value}'")
       cmd = Chef::ShellOut.new("locale -a | grep ^#{value}$").run_command
       unless cmd.exitstatus == 0 
-        raise "The requested locale '#{value}' is not known or not installed"
+        Chef::Log.warn("The requested locale '#{value}' is not known or not installed")
       end
     end
   end
@@ -45,6 +45,8 @@ end
 if locale_settings['language'] = nil 
   locale_settings['language'] = locale_settings['lang']
 end
+
+return
 
 if platform?("ubuntu", "debian")
   locale_settings.each() do |key, value|

@@ -8,3 +8,13 @@ node.default['qcloud']['set_fqdn'] = nil
 node.default['qcloud']['root_email'] = nil
 node.default['qcloud']['mail_relay'] = nil
 node.default['qcloud']['apply_patches'] = 'all'
+node.default['qcloud']['antivirus'] = false
+
+node.default['qcloud']['clamscan']['args'] = '--quiet -r'  
+node.default['qcloud']['clamscan']['scans'] = 
+  {'/' => {
+    'action' => 'notify',
+    'exclude_dir' => '^/sys|^/proc|^/dev' 
+  }
+}
+node.default['qcloud']['clamscan']['schedule'] = ['10', '2', '*', '*', '*']

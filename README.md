@@ -11,6 +11,7 @@ Menu
 * `site-cookbooks/daris` - Installation and configuration of a DaRIS instance
 * `site-cookbooks/pvconv` - Download, build and install the pvconv Bruker converter.
 * `site-cookbooks/minc-toolkit` - Download, build and install the MINC toolkit.
+* `site-cookbooks/qcloud` - Recipes for configuring NeCTAR virtuals.
 
 Status
 ======

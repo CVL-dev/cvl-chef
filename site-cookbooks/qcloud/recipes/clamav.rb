@@ -1,6 +1,6 @@
 #
 # Cookbook Name:: qcloud
-# Recipe:: setup
+# Recipe:: clamav
 #
 # Copyright (c) 2013, The University of Queensland
 # All rights reserved.
@@ -27,36 +27,52 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-require 'ipaddr'
+include_recipe "clamav"
 
-if node['qcloud']['tz'] then
-  node.normal['tz'] = node['qcloud']['tz']
-  include_recipe 'timezone-ii::default'
+clamscan = node['qcloud']['clamscan']
+scans = clamscan['scans'] 
+schedule = clamscan['schedule']
+if !schedule.kind_of?(Array) || schedule.length != 5 
+  raise 'Cron schedule must be an array with 5 components'
+end
+common_args = clamscan['args']
+commands = []
+
+scans.each() do |dir, attrs|
+  action = attrs['action'] || 'notify'
+
+  case action 
+  when 'notify'
+    args = '-i'
+  when 'move', 'copy'
+    to_dir = attrs['to_dir']
+    if ! to_dir || to_dir == ' ' then
+      raise "The 'move' and 'copy' actions requires a 'to_dir' attribute"
+    end
+    directory to_dit do
+      owner 'root'
+      mode 0700
+    end
+    args = "--#{action}=#{to_dir}"
+  when 'remove'
+    args = "--remove"
+  else
+    raise "Unrecognized action '#{action}'"
+  end
+  if attrs['exclude_dir'] 
+    args = "#{args} --exclude-dir='#{attrs['exclude_dir']}'"
+  end
+  commands << "clamscan #{common_args} #{args} #{dir}"
 end
 
-if node['qcloud']['set_fqdn'] then
-  include_recipe 'qcloud::set_hostname'
+if ! commands.empty? 
+  cron 'clamav scanning' do
+    minute schedule[0]
+    hour schedule[1]
+    day schedule[2]
+    month schedule[3]
+    weekday schedule[4]
+    mailto 'root'
+    command commands.join("; ")
+  end
 end
-
-include_recipe 'locale'
-
-if node['qcloud']['root_email'] then
-  include_recipe 'qcloud::rootmail'
-end
-
-if node['qcloud']['logwatch'] then
-  include_recipe 'qcloud::logwatch'
-end
-
-if node['qcloud']['mail_relay'] then
-  include_recipe 'qcloud::mail_relay'
-end
-
-if node['qcloud']['apply_patches'] then
-  include_recipe 'qcloud::autopatching'
-end
-
-if node['qcloud']['antivirus'] then
-  include_recipe 'qcloud::clamav'
-end
-

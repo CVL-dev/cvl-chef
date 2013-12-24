@@ -1,14 +1,14 @@
 #
-# Cookbook:: java
+# Cookbook Name:: aws
+# Attributes:: default
 #
-# Author:: Joshua Timberman <joshua@opscode.com>
-# Copyright:: Copyright (c) 2013, Opscode, Inc. <legal@opscode.com>
+# Copyright 2011, Opscode, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,13 +17,6 @@
 # limitations under the License.
 #
 
-module Helpers
-  module Java
-    require 'chef/mixin/shell_out'
-    include Chef::Mixin::ShellOut
-    include MiniTest::Chef::Assertions
-    include MiniTest::Chef::Context
-    include MiniTest::Chef::Resources
-
-  end
-end
+default['aws']['right_aws_version'] = "3.0.5"
+default['aws']['databag_name'] = nil
+default['aws']['databag_entry'] = nil

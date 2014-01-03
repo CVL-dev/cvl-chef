@@ -73,18 +73,39 @@ See `attributes/default.rb` for the default values.
 * `node['mediaflux']['jvm_memory_max']` - The server's heap size (in Mbytes)
 * `node['mediaflux']['jvm_memory_perm_max']` - The server's permgen size (in Mbytes)
 * `node['mediaflux']['backup_dir']` - The locations where backups are created.  This defaults to the "$MFLUX_HOME/volatile/backups".
-* `node['mediaflux']['backup_replica']` - The location for the backup replica.  If unset, there is no replication.
+* `node['mediaflux']['backup_replica']` - The location for the rsync backup replica.  If unset, there is no rsync replication.
+* `node['mediaflux']['backup_store']` - The Swift Object Store storename for saving backups.  See below for more details.  If unset, backups are not saved to Swift.
 * `node['mediaflux']['backup_keep_days']` - Keep backups for this many days. 
 * `node['mediaflux']['backup_cron']` - If true, a cron job is created to run the backups.  Defaults to false.
 * `node['mediaflux']['backup_cron_mailto']` - Mail account for backup cron email.
 * `node['mediaflux']['backup_cron_times']` - The backup cron schedule.  Defaults to `[ "0", "2", "*", "*", "*" ]`.
 
-The Java installation details are as follows:
+Java installation details
+=========================
 
-* If "install_java" flag is true, then the "java" cookbook attributes determine the version selected.  (Note that these are overridden at the "default" level in the mediaflux "attributes/default.rb" file.)
+If the `node['mediaflux']['install_java']` is true, then the "mediaflux"
+cookbook will use the "java" cookbook to install Java.  The `node['java']`
+attributes will determine the flavour and version of Java that is selected.
+Some of these are overridden at the default level by the "mediaflux" cookbook.
 
-Note that Arcitecta recommend that you use the latest Oracle 1.7.x Java; 
-see https://groups.google.com/forum/#!topic/mediaflux/Tn1ryG59lwU
+Arcitecta recommend that you use the latest Oracle 1.7.x Java; 
+see https://groups.google.com/forum/#!topic/mediaflux/Tn1ryG59lwU.  However, 
+there is a "gotcha".  The "java" cookbook relies on a patch-specific download 
+URL and checksum to select the version of Oracle Java.  By default, these are
+provided by attribute defaults.  This means that if you select "oracle" 
+flavour, your system's Java installation does not get updated automatically 
+... which is not a good thing.  By constrast, the "openjdk" flavour will 
+keep your system up-to-date with the latest patch release of Java available 
+from the distro's repositories.
+
+Accordingly, the "mediaflux" cookbook defaults to specifying the "openjdk" 
+flavour of Java.
+
+The "java" cookbook plugs the installed Java into the "alternatives" system 
+so that the commands are available via the normal distro-specific paths.  The
+"mediaflux" cookbook assumes this.  If you want to use a different Java 
+installation, set `node['mediaflux']['install_java']` to the path to the
+`java` command.
 
 Configuring the ports
 =====================
@@ -215,13 +236,43 @@ Backups
 =======
 
 This recipe creates a simple backup script that can be used to backup the
-Mediaflux database and the assets in the respective stores.
+Mediaflux database and the assets in the respective stores.  The script is 
+designed for performing a full backups (at most) once a day, keeping 
+backup sets for a fixed number of days:
 
-The default script is designed for performing a full backups (at most) once a day, keeping backup sets for a a fixed number of days.  It can optionally use 'rsync' to "replicate" the backups to another location.  The actual backups are performed by running a Mediaflux TCL script.
-
-Logs of what the backup script does are written to "backups.log" in the Mediaflux log directory.
+* The actual backups are performed by running a Mediaflux TCL script that write the files to the primary backup location.
+* Backups are optionally "replicated" to another location using `rsync`.
+* Backups are optionally saved to a Swift object store.
+* Logs of what the backup script does are written to "backups.log" in the Mediaflux log directory.
 
 The recipe will optionally create a cron job to run the backups.  You can specify the schedule for the job, and an optional email address for mailing failure reports to.
+
+Replicating the backups using "rsync"
+-------------------------------------
+
+The backup script can maintain replica of the backup tree consisting of all
+backup sets that are being "kept"; see above.  The replication is done by using
+`rsync` to sync the files to a local or remote location given by the 
+"backup_replica" attribute.  For example:
+
+* If (say) an RDSI collection was mounted as "/data/Qxxxx", you could save the backups there by using "/data/Qxxxx/backups" as the location.
+* If you have set up the appropriate SSH credentials, you could save backups remotely using "somehost.example.com:/backups".
+
+Saving backups to a Swift object store
+--------------------------------------
+
+(This is currently specific to NeCTAR, but it could be generalized)
+
+The backup can save copies of backups in a Swift object store.  In order to
+make this work, you need to install the "swift" client and set up appropriate
+authentication credentials for accessing them in "/etc/mediaflux/openstackrc".
+This can be done by hand, or by setting the appropriate attributes and adding 
+the "qcloud::setup" or "qcloud::openstack_clients" recipe to your node's
+run-list.  Refer to the "qcloud" cookbook documentation.
+
+Note that the "mediaflux::default" recipe overrides
+`node['qcloud']['openstack_rc_path']` to put the credentials file in the
+location above.
 
 Differences from standard and DaRIS Mediaflux
 =============================================

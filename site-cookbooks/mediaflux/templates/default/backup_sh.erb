@@ -8,18 +8,19 @@ if [ -e /etc/mediaflux/servicerc ] ; then
     . /etc/mediaflux/servicerc
 fi
 
-DIR=<%= @backup_dir %>
-LOG=$MFLUX_HOME/volatile/logs/backups.log
-REPLICA=<%= @replica %>
-KEEP_DAYS=<%= @keep_days %>
+DIR="<%= @backup_dir %>"
+LOG="$MFLUX_HOME/volatile/logs/backups.log"
+REPLICA="<%= @replica %>"
+STORE="<%= @store %>"
+KEEP_DAYS="<%= @keep_days %>"
 
 echo >> $LOG
 echo "*** Starting mediaflux backup run - " `date` >> $LOG
 
 echo "Cleaning old backups" >> $LOG
 find $DIR -type f -ctime +$KEEP_DAYS -exec rm -v {} \; >> $LOG 2>&1
-find $DIR -mindepth 1 -type d -ctime +$KEEP_DAYS \
-    -exec rmdir -v --ignore-fail-on-non-empty \{\} \; >> $LOG 2>&1
+echo "Cleaning empty backup dirs" >> $LOG
+find $DIR -mindepth 1 -type d -empty -exec rmdir -v {} \; >> $LOG 2>&1
 
 TODAY=`date +%F`
 TODAY_DIR=$DIR/$TODAY
@@ -49,9 +50,6 @@ fi
 if [ ! -z "$REPLICA" ] ; then
     echo "Replicating backups to " $REPLICA >> $LOG
     OPTS="-av --delete-before"
-    if [ `expr match $REPLICA ".+:"` -eq 0 ] ; then 
-        OPTS="$OPTS --delete-before"
-    fi
     rsync $OPTS $DIR $REPLICA >> $LOG 2>&1
     RC=$?
     if [ $RC -ne 0 ] ; then
@@ -60,6 +58,18 @@ if [ ! -z "$REPLICA" ] ; then
     else
 	echo "*** Backup replication completed - " `date` >> $LOG
     fi
+fi
+
+if [ ! -z "$STORE" ] ; then
+    echo "Exporting backup to Object Store " $STORE >> $LOG
+    . /etc/mflux/openstackrc
+    RC=`( cd $DIR ; swift upload $STORE . >> $LOG ; echo $?)`
+    if [ $RC -ne 0 ] ; then
+	echo "*** Backup save to Swift failed - " `date` >> $LOG
+	echo "Mediaflux backup save to Swift failed; see log file"
+    else
+	echo "*** Backup save to Swift completed - " `date` >> $LOG
+    fi 
 fi
 
 exit $RC

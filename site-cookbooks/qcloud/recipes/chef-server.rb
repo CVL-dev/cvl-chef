@@ -1,8 +1,8 @@
 #
 # Cookbook Name:: qcloud
-# Recipe:: clamav
+# Recipe:: chef-server
 #
-# Copyright (c) 2013, 2014, The University of Queensland
+# Copyright (c) 2012, 2014, The University of Queensland
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,52 +27,57 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-include_recipe "clamav"
+include_recipe "chef-server"
 
-clamscan = node['qcloud']['clamscan']
-scans = clamscan['scans'] 
-schedule = clamscan['schedule']
-if !schedule.kind_of?(Array) || schedule.length != 5 
-  raise 'Cron schedule must be an array with 5 components'
-end
-common_args = clamscan['args']
-commands = []
-
-scans.each() do |dir, attrs|
-  action = attrs['action'] || 'notify'
-
-  case action 
-  when 'notify'
-    args = '-i'
-  when 'move', 'copy'
-    to_dir = attrs['to_dir']
-    if ! to_dir || to_dir == '' then
-      raise "The 'move' and 'copy' actions require a 'to_dir' attribute"
-    end
-    directory to_dir do
-      owner 'root'
-      mode 0700
-    end
-    args = "--#{action}=#{to_dir}"
-  when 'remove'
-    args = "--remove"
-  else
-    raise "Unrecognized action '#{action}'"
-  end
-  if attrs['exclude_dir'] 
-    args = "#{args} --exclude-dir='#{attrs['exclude_dir']}'"
-  end
-  commands << "clamscan #{common_args} #{args} #{dir}"
+directory "/var/chef/couchdb" do
+  owner "chef"
+  group "chef"
 end
 
-if ! commands.empty? 
-  cron 'clamav scanning' do
-    minute schedule[0]
-    hour schedule[1]
-    day schedule[2]
-    month schedule[3]
-    weekday schedule[4]
-    mailto 'root'
-    command commands.join("; ")
-  end
+cookbook_file "/var/chef/couchdb/couchdb_daily.sh" do
+  owner "chef"
+  group "chef"
+  mode 0500
 end
+
+directory "/var/chef/backup/state/chef_server_backup" do
+  owner "chef"
+  group "chef"
+  mode 0700
+  action :create
+  recursive true
+end
+
+cookbook_file "/var/chef/backup/state/chef-backup.sh" do
+  action :create
+  owner "chef"
+  group "chef"
+  mode 0500
+end
+
+cookbook_file "/var/chef/backup/state/chef_server_backup.rb" do
+  action :create
+  owner "chef"
+  group "chef"
+  mode 0400
+end
+
+cron "chef_server_backup" do
+  hour "12"
+  minute "30"
+  user "chef"
+  mailto "root"
+  home "/var/chef"
+  command "/var/chef/backup/state/chef-backup.sh"
+end
+
+cron "chef_couchdb_daily" do
+  hour "13"
+  minute "30"
+  user "chef"
+  mailto "root"
+  home "/var/chef"
+  command "/var/chef/couchdb/couchdb_daily.sh"
+end
+
+include_recipe "git"

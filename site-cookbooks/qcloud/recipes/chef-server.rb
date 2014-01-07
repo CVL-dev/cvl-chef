@@ -27,6 +27,16 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+directory "/var/chef" do
+end
+
+user "chef" do
+  system true
+  home "/var/chef"
+  shell "/usr/sbin/nologin"
+  comment "chef services"
+end
+
 include_recipe "chef-server"
 
 directory "/var/chef/couchdb" do
@@ -79,5 +89,3 @@ cron "chef_couchdb_daily" do
   home "/var/chef"
   command "/var/chef/couchdb/couchdb_daily.sh"
 end
-
-include_recipe "git"

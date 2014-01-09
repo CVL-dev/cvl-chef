@@ -17,3 +17,6 @@ cookbook 'powershell', '1.1.2'
 cookbook 'timezone-ii', '0.2.0'
 cookbook 'windows', '1.12.6'
 cookbook 'yum', '2.4.4'
+
+cookbook 'setup', github: 'nectar-cookbooks/setup'
+

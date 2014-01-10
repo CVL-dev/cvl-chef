@@ -20,3 +20,4 @@ cookbook 'yum', '2.4.4'
 
 cookbook 'setup', github: 'nectar-cookbooks/setup'
 cookbook 'pvconv', github: 'nectar-cookbooks/pvconv'
+cookbook 'minc-toolkit', github: 'nectar-cookbooks/minc-toolkit'

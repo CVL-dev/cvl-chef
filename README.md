@@ -3,10 +3,7 @@ cvl-chef
 
 This chef-repo contains Chef cookbooks for some NeCTAR Characterization 
 Virtual Laboratory (CVL) projects.  The repo is designed for use with 
-Berkshelf, as describe below.
-
-Menu
-====
+Berkshelf, as describe below.  The cookbooks include:
 
 * `setup` - Basic NeCTAR installation tasks.
 * `mediaflux` - Installation and configuration of generic Mediaflux server 
@@ -14,17 +11,9 @@ Menu
 * `pvconv` - Download, build and install the pvconv Bruker converter.
 * `minc-toolkit` - Download, build and install the MINC toolkit.
 
-Status
-======
 
-Any cookbooks with a "0.0.1" version number should be viewed as prerelease;
-e.g. potentially incomplete and unstable.
-
-Cookbooks are currently only being tested on CentOS 6.4.
-  
-
-Micro-introduction to Chef and Berkshelf
-========================================
+Introduction to Chef and Berkshelf
+==================================
 
 Opscode Chef is system for automating the configuration of (typically) Linux / 
 UNIX based machines and virtuals.  See http://www.opscode.com/chef/ for details.
@@ -74,7 +63,7 @@ Chef Solo and the recipes in this repo:
 
          sudo bash -c "true && curl -L https://www.opscode.com/chef/install.sh | bash"
 
-3. Install Berkshelf:
+3. Install Berkshelf and add 'berks' to your path
 
          sudo /opt/chef/embedded/bin/gem install berkshelf
          sudo ln -s /opt/chef/embedded/bin/berks /usr/local/bin

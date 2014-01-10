@@ -1,32 +1,24 @@
 cvl-chef
 ========
 
-This repository contains Chef cookbooks for some NeCTAR Characterization 
-Virtual Laboratory (CVL) projects.  
+This chef-repo contains Chef cookbooks for some NeCTAR Characterization 
+Virtual Laboratory (CVL) projects.  The repo is designed for use with 
+Berkshelf, as describe below.  The cookbooks include:
 
-Menu
-====
+* `setup` - Basic NeCTAR installation tasks.
+* `mediaflux` - Installation and configuration of generic Mediaflux server 
+* `daris` - Installation and configuration of a DaRIS instance
+* `pvconv` - Download, build and install the pvconv Bruker converter.
+* `minc-toolkit` - Download, build and install the MINC toolkit.
 
-* `site-cookbooks/mediaflux` - Installation and configuration of generic Mediaflux server 
-* `site-cookbooks/daris` - Installation and configuration of a DaRIS instance
-* `site-cookbooks/pvconv` - Download, build and install the pvconv Bruker converter.
-* `site-cookbooks/minc-toolkit` - Download, build and install the MINC toolkit.
-* `site-cookbooks/qcloud` - Recipes for configuring NeCTAR virtuals.
 
-Status
-======
-
-Any cookbooks with a "0.0.1" version number should be viewed as prerelease;
-e.g. potentially incomplete and unstable.
-
-Cookbooks are currently only being tested on CentOS 6.4.
-  
-
-Micro-introduction to Chef
-==========================
+Introduction to Chef and Berkshelf
+==================================
 
 Opscode Chef is system for automating the configuration of (typically) Linux / 
 UNIX based machines and virtuals.  See http://www.opscode.com/chef/ for details.
+There is also a growing body of relevant information in the Virtual Wranglers 
+espace at https://espaces.com.au/vwrangler.
 
 The basic idea is that configuration tasks are performed using Recipes.  These
 are (mostly) declarative scripts written in the Chef's Ruby-based "domain 
@@ -50,6 +42,8 @@ individually, and take care of the distribution of configuration specs and
 state yourself.  (Chef solo does not support shared Data Bags or dynamic Node 
 attribute storage ... or any form of authorization.)
 
+Berkshelf is a tool for managing the collection of Cookbooks that you use.  It deals with downloading the cookbooks from various sources, dependencies between cookbooks, and version locking.
+
 Getting Started
 ===============
 
@@ -57,49 +51,48 @@ There is lots of material on the Opscode site about how to use Chef in its
 various forms.  But here's a quick "cheat sheet" to get yourself started with
 Chef Solo and the recipes in this repo:
 
-1. Use yum or apt-get to install git
+1. Install git and the dependencies for Berkshelf.
 
-2. Install the latest version of chef-client:
+         sudo yum install git gcc gcc-c++ ruby-devel
+
+   or
+
+         sudo apt-get install git build-essential ruby-dev
+
+2. Install the latest version of Chef:
 
          sudo bash -c "true && curl -L https://www.opscode.com/chef/install.sh | bash"
 
-3. Create a directory for doing chef solo work.
+3. Install Berkshelf and add 'berks' to your path
+
+         sudo /opt/chef/embedded/bin/gem install berkshelf
+         sudo ln -s /opt/chef/embedded/bin/berks /usr/local/bin
+
+4. Create a directory for doing chef solo work:
 
          sudo mkdir /var/chef-solo
          sudo chown <your-id> /var/chef-solo
 
-4. Clone this repo ...
+5. Clone this repo:
 
          cd /var/chef-solo
          git clone <the url>
          cd cvl-chef
 
-5. Make a node definition ...
+6. Install the dependent cookbooks:
+
+         berks install
+
+7. Make a node definition:
 
          cp solo/sample-node.json mynode.json
          # edit mynode.json to add override attributes, 
          #    change the runlist and so on
 
-6. Run it using chef-solo
+8. Run the using chef-solo
 
          sudo chef-solo -c solo/solo.rb -j mynode.json -ldebug
 
 If you intend to "get serious" with Chef, will need to do a lot more reading.  In addition, you will need to look into things like:
 * version control and backup of your "chef-solo" tree; e.g. the 'mynode.json', and
 * using Chef Server, either in the Open Source (unsupported) or Enterprise flavours.
-
-
-How to stop Chef from being clobbered by Yum
-============================================
-
-The above procedure is installing the latest Chef tools from Opscode, independently of the rpm / yum repositories.  These are a much more recent version that the Chef tools than you would get if you installed the "rubygem-chef" from the repos.  Unfortunately, if you let "yum" update Chef, it will actually install the older version.  To prevent this happening:
-
-1.  Run "sudo yum check-updates" to see if yum would attempt to update Chef.
-
-2.  If it would, then identify the repo from which the "rubygem-chef" package would be installed.
-
-3.  Edit the corresponding repo config file (in /etc/yum.repos.d/) to add an exclude for the package; e.g.
-
-    	 exclude = rubygem-chef
-
-4.  Run "sudo yum check-updates" again to check that you have successfully excluded the package.
